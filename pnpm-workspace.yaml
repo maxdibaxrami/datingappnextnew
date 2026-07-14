@@ -1,0 +1,15 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  sharp: true
+minimumReleaseAgeExclude:
+  - '@supabase/auth-js@2.110.5'
+  - '@supabase/functions-js@2.110.5'
+  - '@supabase/postgrest-js@2.110.5'
+  - '@supabase/realtime-js@2.110.5'
+  - '@supabase/storage-js@2.110.5'
+  - '@supabase/supabase-js@2.110.5'
+overrides:
+  '@babel/core@<=7.29.0': 8.0.1
+  'picomatch@>=4.0.0 <4.0.4': 4.0.5
+  'postcss@<8.5.10': 8.5.19

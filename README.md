@@ -1,141 +1,83 @@
-# Telegram Mini Apps Next.js Template
+# Telegram Dating Mini App
 
-This template demonstrates how developers can implement a web application on the
-Telegram Mini Apps platform using the following technologies and libraries:
+A Next.js Telegram Mini App with a trusted server backend built on Supabase Auth,
+Postgres, Storage, and row-level security.
 
-- [Next.js](https://nextjs.org/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [TON Connect](https://docs.ton.org/develop/dapps/ton-connect/overview)
-- [@telegram-apps SDK](https://docs.telegram-mini-apps.com/packages/telegram-apps-sdk/2-x)
-- [Telegram UI](https://github.com/Telegram-Mini-Apps/TelegramUI)
+The first backend milestone is implemented:
 
-> The template was created using [pnpm](https://pnpm.io/). Therefore, it is
-> required to use it for this project as well. Using other package managers, you
-> will receive a corresponding error.
+- Telegram Mini App initData verification with replay expiry and constant-time
+  signature comparison
+- idempotent, race-safe Telegram identity provisioning into Supabase Auth
+- HttpOnly access/refresh cookie sessions; tokens are never returned to browser code
+- account status, ban, restriction, and profile-completion gates
+- profile onboarding and completion APIs
+- private original profile-photo uploads through signed Storage URLs
+- photo confirmation, primary selection, reordering, and soft deletion
+- database-backed rate limits and consistent API responses
 
-## Install Dependencies
+The production Supabase migration is
+supabase/migrations/20260714163611_backend_foundation_auth.sql. Do not reapply
+an already-recorded migration. Check migration history before deploying.
 
-If you have just cloned this template, you should install the project
-dependencies using the command:
+## Local setup
 
-```Bash
+This project uses pnpm.
+
+~~~bash
 pnpm install
-```
+cp .env.example .env.local
+pnpm dev
+~~~
 
-## Scripts
+Fill .env.local with server-only credentials. Never expose the Telegram bot
+token, service-role key, or application secrets through a NEXT_PUBLIC_
+variable.
 
-This project contains the following scripts:
+## Commands
 
-- `dev`. Runs the application in development mode.
-- `dev:https`. Runs the application in development mode using self-signed SSL
-  certificate.
-- `build`. Builds the application for production.
-- `start`. Starts the Next.js server in production mode.
-- `lint`. Runs [eslint](https://eslint.org/) to ensure the code quality meets
-  the required
-  standards.
+~~~bash
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm build
+~~~
 
-To run a script, use the `pnpm run` command:
+## API contract
 
-```Bash
-pnpm run {script}
-# Example: pnpm run build
-```
+Successful responses:
 
-## Create Bot and Mini App
+~~~json
+{
+  "data": {}
+}
+~~~
 
-Before you start, make sure you have already created a Telegram Bot. Here is
-a [comprehensive guide](https://docs.telegram-mini-apps.com/platform/creating-new-app)
-on how to do it.
+Errors:
 
-## Run
+~~~json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable message"
+  }
+}
+~~~
 
-Although Mini Apps are designed to be opened
-within [Telegram applications](https://docs.telegram-mini-apps.com/platform/about#supported-applications),
-you can still develop and test them outside of Telegram during the development
-process.
+Implemented routes:
 
-To run the application in the development mode, use the `dev` script:
+- POST /api/auth/telegram
+- GET /api/auth/me
+- POST /api/auth/refresh
+- POST /api/auth/logout
+- GET|PATCH /api/profile/me
+- POST /api/profile/complete
+- POST /api/profile/photos/upload-url
+- POST /api/profile/photos/:photoId/confirm
+- POST /api/profile/photos/:photoId/primary
+- DELETE /api/profile/photos/:photoId
+- POST /api/profile/photos/reorder
 
-```bash
-pnpm run dev
-```
-
-After this, you will see a similar message in your terminal:
-
-```bash
-▲ Next.js 14.2.3
-- Local:        http://localhost:3000
-
-✓ Starting...
-✓ Ready in 2.9s
-```
-
-To view the application, you need to open the `Local`
-link (`http://localhost:3000` in this example) in your browser.
-
-It is important to note that some libraries in this template, such as
-`@telegram-apps/sdk`, are not intended for use outside of Telegram.
-
-Nevertheless, they appear to function properly. This is because the
-`src/hooks/useTelegramMock.ts` file, which is imported in the application's
-`Root` component, employs the `mockTelegramEnv` function to simulate the
-Telegram environment. This trick convinces the application that it is
-running in a Telegram-based environment. Therefore, be cautious not to use this
-function in production mode unless you fully understand its implications.
-
-### Run Inside Telegram
-
-Although it is possible to run the application outside of Telegram, it is
-recommended to develop it within Telegram for the most accurate representation
-of its real-world functionality.
-
-To run the application inside Telegram, [@BotFather](https://t.me/botfather)
-requires an HTTPS link.
-
-This template already provides a solution.
-
-To retrieve a link with the HTTPS protocol, consider using the `dev:https`
-script:
-
-```bash
-$ pnpm run dev:https
-
-▲ Next.js 14.2.3
-- Local:        https://localhost:3000
-
-✓ Starting...
-✓ Ready in 2.4s
-```
-
-Visiting the `Local` link (`https://localhost:3000` in this example) in your
-browser, you will see the following warning:
-
-![SSL Warning](assets/ssl-warning.png)
-
-This browser warning is normal and can be safely ignored as long as the site is
-secure. Click the `Proceed to localhost (unsafe)` button to continue and view
-the application.
-
-Once the application is displayed correctly, submit the
-link `https://127.0.0.1:3000` (`https://localhost:3000` is considered as invalid
-by BotFather) as the Mini App link to [@BotFather](https://t.me/botfather).
-Then, navigate to [https://web.telegram.org/k/](https://web.telegram.org/k/),
-find your bot, and launch the Telegram Mini App. This approach provides the full
-development experience.
-
-## Deploy
-
-The easiest way to deploy your Next.js app is to use
-the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme)
-from the creators of Next.js.
-
-Check out
-the [Next.js deployment documentation](https://nextjs.org/docs/deployment) for
-more details.
-
-## Useful Links
-
-- [Platform documentation](https://docs.telegram-mini-apps.com/)
-- [@telegram-apps/sdk-react documentation](https://docs.telegram-mini-apps.com/packages/telegram-apps-sdk-react)
-- [Telegram developers community chat](https://t.me/devs)
+See [docs/BACKEND_ARCHITECTURE.md](docs/BACKEND_ARCHITECTURE.md) for security
+boundaries, data ownership, deployment notes, and the roadmap for discovery,
+swipes, matches, daily chemistry, date ideas, monetization, moderation, social,
+and TON payments.
