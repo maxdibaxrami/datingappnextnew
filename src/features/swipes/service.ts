@@ -22,9 +22,10 @@ function mapMatch(row: SwipeRpcRow) {
 
 export async function recordSwipe(userId: string, input: SwipeInput) {
   await requireDatingAccount(userId);
-  const { data, error } = await callDatingRpc('record_swipe_action', {
+  const { data, error } = await callDatingRpc('record_dating_swipe', {
     p_action_type: input.actionType,
     p_actor_user_id: userId,
+    p_daily_chemistry_candidate_id: input.candidateId,
     p_idempotency_key: input.idempotencyKey,
     p_source_surface: input.sourceSurface,
     p_target_user_id: input.targetUserId,
@@ -64,7 +65,7 @@ function mapUndo(row: UndoRpcRow) {
 
 export async function undoSwipe(userId: string, input: UndoSwipeInput) {
   await requireDatingAccount(userId);
-  const { data, error } = await callDatingRpc('undo_latest_swipe', {
+  const { data, error } = await callDatingRpc('undo_dating_swipe', {
     p_actor_user_id: userId,
     p_idempotency_key: input.idempotencyKey,
     p_target_user_id: input.targetUserId,

@@ -579,11 +579,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "daily_chemistry_candidates_card_id_fkey"
-            columns: ["card_id"]
+            foreignKeyName: "daily_chemistry_candidates_card_viewer_fkey"
+            columns: ["card_id", "viewer_user_id"]
             isOneToOne: false
             referencedRelation: "daily_chemistry_cards"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "user_id"]
           },
           {
             foreignKeyName: "daily_chemistry_candidates_match_id_fkey"
@@ -3072,6 +3072,50 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_or_create_daily_chemistry_card: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          age_years: number
+          algorithm_version: string
+          bio: string
+          candidate_acted_at: string
+          candidate_id: string
+          candidate_status: Database["public"]["Enums"]["daily_chemistry_candidate_status"]
+          candidate_viewed_at: string
+          card_date: string
+          card_id: string
+          card_status: Database["public"]["Enums"]["daily_chemistry_card_status"]
+          card_summary: string
+          city_name: string
+          compatibility_score: number
+          country_code: string
+          display_name: string
+          expires_at: string
+          gender: Database["public"]["Enums"]["gender_type"]
+          generated_at: string
+          headline: string
+          interests: string[]
+          languages: string[]
+          last_active_at: string
+          mood: string
+          online_state: Database["public"]["Enums"]["online_state"]
+          primary_photo_blur_hash: string
+          primary_photo_height: number
+          primary_photo_url: string
+          primary_photo_width: number
+          public_geohash_prefix: string
+          rank_position: number
+          reason_tags: string[]
+          reasons: Json
+          relationship_goals: string[]
+          remaining_candidates: number
+          shared_goals: string[]
+          shared_interests: string[]
+          shared_languages: string[]
+          target_user_id: string
+          total_candidates: number
+        }[]
+      }
       get_user_matches: {
         Args: {
           p_actor_user_id: string
@@ -3106,6 +3150,16 @@ export type Database = {
           relationship_goals: string[]
         }[]
       }
+      mark_daily_chemistry_candidate_viewed: {
+        Args: { p_actor_user_id: string; p_candidate_id: string }
+        Returns: {
+          candidate_id: string
+          candidate_status: Database["public"]["Enums"]["daily_chemistry_candidate_status"]
+          card_remaining_candidates: number
+          card_status: Database["public"]["Enums"]["daily_chemistry_card_status"]
+          viewed_at: string
+        }[]
+      }
       provision_telegram_user: {
         Args: {
           p_added_to_attachment_menu?: boolean
@@ -3121,6 +3175,27 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      record_dating_swipe: {
+        Args: {
+          p_action_type: Database["public"]["Enums"]["swipe_action_type"]
+          p_actor_user_id: string
+          p_daily_chemistry_candidate_id?: string
+          p_idempotency_key: string
+          p_source_surface: Database["public"]["Enums"]["discovery_surface"]
+          p_target_user_id: string
+        }
+        Returns: {
+          action_created_at: string
+          action_id: string
+          action_type: Database["public"]["Enums"]["swipe_action_type"]
+          match_created: boolean
+          match_id: string
+          match_status: Database["public"]["Enums"]["match_status"]
+          matched_at: string
+          source_surface: Database["public"]["Enums"]["discovery_surface"]
+          target_user_id: string
+        }[]
       }
       record_swipe_action: {
         Args: {
@@ -3157,6 +3232,22 @@ export type Database = {
       soft_delete_profile_photo: {
         Args: { p_photo_id: string; p_user_id: string }
         Returns: string
+      }
+      undo_dating_swipe: {
+        Args: {
+          p_actor_user_id: string
+          p_idempotency_key: string
+          p_target_user_id?: string
+          p_window_seconds?: number
+        }
+        Returns: {
+          action_created_at: string
+          action_id: string
+          action_type: Database["public"]["Enums"]["swipe_action_type"]
+          source_surface: Database["public"]["Enums"]["discovery_surface"]
+          target_user_id: string
+          undone_action_id: string
+        }[]
       }
       undo_latest_swipe: {
         Args: {

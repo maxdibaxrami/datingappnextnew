@@ -3,7 +3,7 @@
 A Next.js Telegram Mini App with a trusted server backend built on Supabase Auth,
 Postgres, Storage, and row-level security.
 
-The first two backend milestones are implemented:
+The first three backend milestones are implemented in the repository:
 
 - Telegram Mini App initData verification with replay expiry and constant-time
   signature comparison
@@ -18,13 +18,17 @@ The first two backend milestones are implemented:
 - race-safe reciprocal matching with canonical user ordering
 - five-minute latest-swipe undo with immutable action history
 - cursor-paginated active match reads
+- one stored UTC Daily Chemistry card with at most three explainable candidates
+- safe 30-day candidate deduplication and backend-only compatibility scoring
+- atomic candidate view, swipe, match, expiry, and undo state reconciliation
 - database-backed rate limits and consistent API responses
 
-Database migrations live in supabase/migrations. The foundation and dating-loop
-migrations through 20260714190104_fix_latest_swipe_ordering.sql are already
-recorded in the live dating_app project. The checked-in generated database types
-match that schema. Never reapply an already-recorded migration; check migration
-history before applying the next migration.
+Database migrations live in supabase/migrations. Migrations through
+20260714200110_fix_daily_chemistry_card_viewer_fk_index.sql are recorded in the
+live dating_app project, including Daily Chemistry. The generated database types
+match that live schema. Never reapply an already-recorded migration; check
+migration history before applying the next migration and regenerate database
+types after every live schema change.
 
 ## Local setup
 
@@ -87,6 +91,8 @@ Implemented routes:
 - POST /api/swipes
 - POST /api/swipes/undo
 - GET /api/matches
+- GET /api/daily-chemistry
+- POST /api/daily-chemistry/candidates/:candidateId/view
 
 See [docs/BACKEND_ARCHITECTURE.md](docs/BACKEND_ARCHITECTURE.md) for security
 boundaries, data ownership, deployment notes, and the roadmap for daily
