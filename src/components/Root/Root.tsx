@@ -25,7 +25,9 @@ function RootInner({ children }: PropsWithChildren) {
 
   // Set the user locale.
   useEffect(() => {
-    initDataUser && setLocale(initDataUser.language_code);
+    if (initDataUser) {
+      setLocale(initDataUser.language_code);
+    }
   }, [initDataUser]);
 
   return (
