@@ -26,6 +26,15 @@ export function throwDatingRpcError(
       throw new ApiError(409, 'ALREADY_SWIPED', 'You already acted on this profile');
     case 'already_matched':
       throw new ApiError(409, 'ALREADY_MATCHED', 'You are already matched with this user');
+    case 'daily_chemistry_candidate_unavailable':
+      throw new NotFoundError('The Daily Chemistry candidate is not available');
+    case 'daily_chemistry_candidate_expired':
+    case 'daily_chemistry_candidate_already_acted':
+      throw new ApiError(
+        409,
+        'DAILY_CHEMISTRY_ACTION_UNAVAILABLE',
+        'This Daily Chemistry candidate can no longer be changed',
+      );
     case 'insufficient_super_likes':
       throw new ApiError(
         409,
@@ -50,6 +59,10 @@ export function throwDatingRpcError(
     case 'missing_swipe_input':
     case 'missing_undo_input':
     case 'invalid_undo_window':
+    case 'missing_daily_chemistry_actor':
+    case 'missing_daily_chemistry_candidate':
+    case 'daily_chemistry_candidate_required':
+    case 'unexpected_daily_chemistry_candidate':
       throw new ValidationError('The dating request is invalid');
     default:
       throw new ApiError(500, 'INTERNAL_ERROR', fallbackMessage);

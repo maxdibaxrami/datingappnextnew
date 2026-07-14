@@ -74,11 +74,13 @@ interface DatingRpcDefinitions {
     Args: RpcArgs<'get_user_matches'>;
     Returns: MatchRpcRow[];
   };
-  record_swipe_action: {
-    Args: RpcArgs<'record_swipe_action'>;
+  record_dating_swipe: {
+    Args: RpcArgs<'record_swipe_action'> & {
+      p_daily_chemistry_candidate_id?: string;
+    };
     Returns: SwipeRpcRow[];
   };
-  undo_latest_swipe: {
+  undo_dating_swipe: {
     Args: RpcArgs<'undo_latest_swipe'>;
     Returns: UndoRpcRow[];
   };

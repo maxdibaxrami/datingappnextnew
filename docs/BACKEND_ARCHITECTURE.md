@@ -14,7 +14,7 @@ records.
 | Profile photo originals | Implemented | Moderation worker and public derivatives |
 | Discovery | Implemented | Ranking experiments, travel mode, and public profile detail |
 | Swipes and matches | Implemented | Unmatch workflow, likes inbox, and product entitlements |
-| Daily chemistry | Planned | Daily candidate generation and quotas |
+| Daily chemistry | Implemented, pending deployment | Preference learning and queued prewarming |
 | Date ideas | Planned | Marketplace browsing and request workflow |
 | Gifts and auras | Planned | Verified-payment fulfillment |
 | Premium and boosts | Planned | Entitlements, ledgers, and exposure events |
@@ -22,10 +22,12 @@ records.
 | Follows and social | Planned | Follow state and feed visibility |
 | TON and Telegram Stars | Planned | Provider verification and idempotent grants |
 
-Authentication, onboarding, discovery, swipes, undo, and active-match reads are
-exposed by the current API. Other tables already present in the database are
-not automatically considered safe to use. Each module requires its own service,
-validation, guards, indexes, and tests before routes are enabled.
+Authentication, onboarding, discovery, swipes, undo, active-match reads, and
+Daily Chemistry are exposed by the current API code. The Daily Chemistry routes
+must not be deployed before their migration. Other tables already present in
+the database are not automatically considered safe to use. Each module requires
+its own service, validation, guards, indexes, and tests before routes are
+enabled.
 
 ## Trust boundaries
 
@@ -220,14 +222,35 @@ actor user ID; the backend derives it from the verified cookie session. The
 application guard and database transaction both enforce account state so a ban
 or block racing with a request cannot bypass the final write check.
 
+### Daily Chemistry
+
+GET /api/daily-chemistry lazily creates one stored card per user and UTC day.
+Each card contains at most three candidates, expires at the next UTC midnight,
+and stores an algorithm version, compatibility score, shared attributes,
+explainable reason tags, and lifecycle state. A stored zero-result card prevents
+repeated scans when no safe candidate is available.
+
+The v1 candidate pool is deliberately bounded to 500 safe, same-country
+profiles and excludes self, either-direction blocks, current swipes, active
+matches, bans, unsafe/incomplete/hidden profiles, and anyone recommended in the
+previous 30 days. It ranks shared interests, languages, relationship goals,
+lifestyle intents, coarse proximity, and recent activity. The API returns clear
+reasons without exposing weights, hidden moderation data, or exact location.
+
+POST /api/daily-chemistry/candidates/:candidateId/view records an idempotent
+view. Swipes continue through POST /api/swipes, but the daily_chemistry surface
+requires the stored candidate ID. Contextual database wrappers atomically link
+the swipe, update the candidate/card quota, propagate a match, and restore the
+candidate when an eligible swipe is undone. The lower-level swipe RPCs are no
+longer directly executable by service_role.
+
+Lazy generation avoids writing three million daily rows for inactive users.
+At higher traffic, a queue can prewarm cards for recently active users by using
+the same versioned generation contract. Persisted age/gender/distance
+preferences should be added before personalized preference filtering; the
+current schema does not contain trustworthy dating preference fields.
+
 ## Planned module contracts
-
-### Daily chemistry
-
-Generate at most three stored candidates per user/day. Store algorithm version,
-score, explainable reasons, and status. Apply expiry and uniqueness constraints.
-Do candidate generation asynchronously and never disclose sensitive scoring
-inputs.
 
 ### Date ideas
 
