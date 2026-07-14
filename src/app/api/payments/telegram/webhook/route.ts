@@ -3,8 +3,16 @@ import { timingSafeEqual } from 'node:crypto';
 import { type NextRequest } from 'next/server';
 import { z } from 'zod';
 
+import {
+  grantTelegramStarsBoostPayment,
+  resolveTelegramStarsBoostPayment,
+} from '@/features/boosts/service';
 import { grantTelegramStarsGiftPayment, resolveTelegramStarsGiftPayment } from '@/features/gifts/service';
 import { answerTelegramPreCheckoutQuery } from '@/features/gifts/telegram-stars';
+import {
+  grantTelegramStarsPremiumPayment,
+  resolveTelegramStarsPremiumPayment,
+} from '@/features/premium/service';
 import { ApiError } from '@/lib/errors/api-error';
 import { getServerEnv } from '@/lib/env';
 import { handleApiRequest, jsonData } from '@/lib/http/json-response';
@@ -40,6 +48,58 @@ function webhookSecretMatches(received: string | null): boolean {
   return expectedBytes.length === receivedBytes.length && timingSafeEqual(expectedBytes, receivedBytes);
 }
 
+type ResolvedStarsPayment = { payment_id: string; kind: 'boost' | 'gift' | 'premium' } | null;
+
+async function resolveStarsPayment(
+  invoicePayload: string,
+  telegramUserId: string,
+  amountStars: number,
+  requireUnexpired = true,
+): Promise<ResolvedStarsPayment> {
+  if (invoicePayload.startsWith('gft_')) {
+    const payment = await resolveTelegramStarsGiftPayment(
+      invoicePayload, telegramUserId, amountStars, requireUnexpired,
+    );
+    return payment ? { payment_id: payment.payment_id, kind: 'gift' } : null;
+  }
+  if (invoicePayload.startsWith('prm_')) {
+    const payment = await resolveTelegramStarsPremiumPayment(
+      invoicePayload, telegramUserId, amountStars, requireUnexpired,
+    );
+    return payment ? { payment_id: payment.payment_id, kind: 'premium' } : null;
+  }
+  if (invoicePayload.startsWith('bst_')) {
+    const payment = await resolveTelegramStarsBoostPayment(
+      invoicePayload, telegramUserId, amountStars, requireUnexpired,
+    );
+    return payment ? { payment_id: payment.payment_id, kind: 'boost' } : null;
+  }
+  return null;
+}
+
+async function grantStarsPayment(input: {
+  payment: Exclude<ResolvedStarsPayment, null>;
+  chargeId: string;
+  telegramUserId: string;
+  amountStars: number;
+  rawWebhook: Record<string, unknown>;
+}): Promise<void> {
+  const payload = {
+    paymentId: input.payment.payment_id,
+    chargeId: input.chargeId,
+    telegramUserId: input.telegramUserId,
+    amountStars: input.amountStars,
+    rawWebhook: input.rawWebhook,
+  };
+  if (input.payment.kind === 'gift') {
+    await grantTelegramStarsGiftPayment(payload);
+  } else if (input.payment.kind === 'premium') {
+    await grantTelegramStarsPremiumPayment(payload);
+  } else {
+    await grantTelegramStarsBoostPayment(payload);
+  }
+}
+
 export async function POST(request: NextRequest) {
   return handleApiRequest(async () => {
     if (!webhookSecretMatches(request.headers.get('x-telegram-bot-api-secret-token'))) {
@@ -54,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     const preCheckout = parsed.data.pre_checkout_query;
     if (preCheckout) {
-      const payment = await resolveTelegramStarsGiftPayment(
+      const payment = await resolveStarsPayment(
         preCheckout.invoice_payload, String(preCheckout.from.id), preCheckout.total_amount,
       );
       await answerTelegramPreCheckoutQuery(preCheckout.id, Boolean(payment));
@@ -64,12 +124,12 @@ export async function POST(request: NextRequest) {
     const successfulPayment = parsed.data.message?.successful_payment;
     const telegramUserId = parsed.data.message?.from?.id;
     if (successfulPayment && telegramUserId) {
-      const payment = await resolveTelegramStarsGiftPayment(
+      const payment = await resolveStarsPayment(
         successfulPayment.invoice_payload, String(telegramUserId), successfulPayment.total_amount, false,
       );
       if (payment) {
-        await grantTelegramStarsGiftPayment({
-          paymentId: payment.payment_id,
+        await grantStarsPayment({
+          payment,
           chargeId: successfulPayment.telegram_payment_charge_id,
           telegramUserId: String(telegramUserId),
           amountStars: successfulPayment.total_amount,

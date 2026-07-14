@@ -18,16 +18,16 @@ records.
 | Date ideas | Implemented and live | Scheduled expiry and moderation workflow |
 | Gifts and auras | Implemented and live | Provider operations and wallet-ownership proof |
 | Messaging and notifications | Implemented and live | Private Realtime delivery and notification preferences |
-| Premium and boosts | Planned | Entitlements, ledgers, and exposure events |
+| Premium and boosts | Implemented and live | Provider operations, expiry worker, and product analytics |
 | Reports and moderation | Implemented and live | Moderator UI, verification evidence, and operational runbooks |
 | Follows and social | Planned | Follow state and feed visibility |
 | TON and Telegram Stars | Implemented and live | Provider operations and wallet-ownership proof |
 
 Authentication, onboarding, discovery, swipes, undo, active-match reads, Daily
-Chemistry, Date Ideas, Gifts/Auras/Payments, Reports/Moderation, and
-Messaging/Notifications are exposed by the current API code and backed by live
-migrations. Other tables already present in the database are not automatically
-considered safe to use.
+Chemistry, Date Ideas, Gifts/Auras/Payments, Reports/Moderation,
+Messaging/Notifications, and Premium/Boosts are exposed by the current API code
+and backed by live migrations. Other tables already present in the database are
+not automatically considered safe to use.
 
 ## Trust boundaries
 
@@ -340,6 +340,38 @@ enable browser Realtime subscriptions until the client has a deliberately
 designed, short-lived authorization mechanism for Supabase private channels;
 the current session token is intentionally never exposed to browser JavaScript.
 
+### Premium and boosts
+
+`GET /api/premium/plans` exposes only active, server-owned plan catalog data.
+`POST /api/premium/purchases` uses a client idempotency UUID but derives the
+plan price, invoice payload, expiration, and provider from the database. The
+existing Telegram Stars webhook now dispatches opaque `prm_` payment payloads
+to the premium fulfillment RPC; `POST /api/premium/payments/ton/confirm` uses
+the same server-side TON transaction verifier as gifts. Each verified payment
+is unique by provider payment ID and can grant only one entitlement. Renewals
+extend a single current subscription rather than creating competing active rows.
+
+`GET /api/premium/me` returns the caller's current entitlement and feature
+limits; browser roles cannot read subscriptions, premium usage, or super-like
+ledgers. `POST /api/premium/claim-super-likes` makes a daily, idempotent UTC
+claim using the plan limit and records the associated feature-usage period.
+
+`GET /api/boosts` returns the active boost catalog and only the caller's boost
+history. Paid boosts have a payment-bound intent with the same Stars/TON
+verification rules. Premium users can create a benefit boost only when their
+plan's configured minutes remain. Overlapping boosts are queued sequentially;
+the database permits at most one active boost per user. The caller can pause or
+resume an owned active boost through the dedicated routes, preserving remaining
+seconds rather than silently losing paid time.
+
+Discovery uses a private exposure multiplier for a currently active (or due
+scheduled) boost and a smaller plan-based `priority_discovery` multiplier. It
+never returns these values in a profile card. A returned discovery page records
+boost impressions best-effort; it cannot make discovery unavailable. A future
+worker should expire boosts and start queued boosts promptly even when a user is
+not being discovered, while the current bounded metric path refreshes due
+returned profiles transactionally.
+
 ### Reports, blocks, and moderation
 
 `POST /api/blocks` and `DELETE /api/blocks/:blockedUserId` are available to
@@ -376,12 +408,13 @@ then the database rechecks the actor's active role before the write.
 Add scheduled expiry and moderation workflows after the core marketplace is
 approved and live.
 
-### Premium and boosts
+### Premium and boosts operations
 
-Treat payments and entitlements as ledgers, not client booleans. Reuse the
-verified, idempotent provider-event contract from Gifts rather than creating a
-parallel payment path. Boost exposure and results are append-only events with
-scheduled start/end and counters derived safely.
+Add an expiry/scheduling worker before advertising precise boost start-time
+guarantees, reconcile provider refunds through a provider-specific adapter, and
+instrument funnel/retention metrics without copying payment data into client
+analytics. Treat all entitlement changes as verified ledger events, never as a
+client-side flag.
 
 ### Messaging delivery
 

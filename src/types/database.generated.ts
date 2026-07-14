@@ -307,8 +307,54 @@ export type Database = {
           },
         ]
       }
+      boost_products: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          multiplier: number
+          name: string
+          price_stars: number
+          price_ton: number | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes: number
+          id?: string
+          is_active?: boolean
+          multiplier: number
+          name: string
+          price_stars: number
+          price_ton?: number | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          multiplier?: number
+          name?: string
+          price_stars?: number
+          price_ton?: number | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       boosts: {
         Row: {
+          boost_product_id: string | null
           boost_type: string
           city_name: string | null
           country_code: string | null
@@ -321,8 +367,10 @@ export type Database = {
           match_count: number
           metadata: Json
           multiplier: number
+          paused_at: string | null
           payment_id: string | null
           profile_view_count: number
+          remaining_seconds: number | null
           source_surface:
             | Database["public"]["Enums"]["discovery_surface"]
             | null
@@ -332,6 +380,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          boost_product_id?: string | null
           boost_type?: string
           city_name?: string | null
           country_code?: string | null
@@ -344,8 +393,10 @@ export type Database = {
           match_count?: number
           metadata?: Json
           multiplier?: number
+          paused_at?: string | null
           payment_id?: string | null
           profile_view_count?: number
+          remaining_seconds?: number | null
           source_surface?:
             | Database["public"]["Enums"]["discovery_surface"]
             | null
@@ -355,6 +406,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          boost_product_id?: string | null
           boost_type?: string
           city_name?: string | null
           country_code?: string | null
@@ -367,8 +419,10 @@ export type Database = {
           match_count?: number
           metadata?: Json
           multiplier?: number
+          paused_at?: string | null
           payment_id?: string | null
           profile_view_count?: number
+          remaining_seconds?: number | null
           source_surface?:
             | Database["public"]["Enums"]["discovery_surface"]
             | null
@@ -378,6 +432,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "boosts_boost_product_id_fkey"
+            columns: ["boost_product_id"]
+            isOneToOne: false
+            referencedRelation: "boost_products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "boosts_payment_id_fkey"
             columns: ["payment_id"]
@@ -3276,6 +3337,16 @@ export type Database = {
           status: Database["public"]["Enums"]["moderation_queue_status"]
         }[]
       }
+      claim_premium_daily_super_likes: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          already_claimed: boolean
+          available_count: number
+          granted_count: number
+          next_refill_at: string
+          subscription_id: string
+        }[]
+      }
       close_date_idea: {
         Args: { p_actor_user_id: string; p_date_idea_id: string }
         Returns: {
@@ -3291,6 +3362,29 @@ export type Database = {
           p_window_seconds: number
         }
         Returns: boolean
+      }
+      create_boost_payment_intent: {
+        Args: {
+          p_boost_product_id: string
+          p_idempotency_key: string
+          p_invoice_payload: string
+          p_provider: Database["public"]["Enums"]["payment_provider"]
+          p_user_id: string
+        }
+        Returns: {
+          amount_stars: number
+          amount_ton: number
+          boost_name: string
+          boost_product_id: string
+          currency: string
+          duration_minutes: number
+          expires_at: string
+          invoice_payload: string
+          multiplier: number
+          payment_id: string
+          payment_provider: Database["public"]["Enums"]["payment_provider"]
+          payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
       }
       create_date_idea: {
         Args: {
@@ -3374,6 +3468,38 @@ export type Database = {
           report_status: Database["public"]["Enums"]["report_status"]
         }[]
       }
+      create_premium_boost: {
+        Args: { p_actor_user_id: string; p_duration_minutes: number }
+        Returns: {
+          boost_id: string
+          boost_status: Database["public"]["Enums"]["boost_status"]
+          ends_at: string
+          multiplier: number
+          remaining_minutes: number
+          starts_at: string
+        }[]
+      }
+      create_premium_payment_intent: {
+        Args: {
+          p_idempotency_key: string
+          p_invoice_payload: string
+          p_plan_id: string
+          p_provider: Database["public"]["Enums"]["payment_provider"]
+          p_user_id: string
+        }
+        Returns: {
+          amount_stars: number
+          amount_ton: number
+          currency: string
+          expires_at: string
+          invoice_payload: string
+          payment_id: string
+          payment_provider: Database["public"]["Enums"]["payment_provider"]
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          plan_id: string
+          plan_name: string
+        }[]
+      }
       decide_date_idea_request: {
         Args: {
           p_accept: boolean
@@ -3421,6 +3547,20 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["user_status"]
           user_id: string
+        }[]
+      }
+      get_boost_catalog: {
+        Args: never
+        Returns: {
+          boost_product_id: string
+          description: string
+          duration_minutes: number
+          multiplier: number
+          name: string
+          price_stars: number
+          price_ton: number
+          slug: string
+          sort_order: number
         }[]
       }
       get_conversation_messages: {
@@ -3619,6 +3759,31 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_my_boosts: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_boost_id?: string
+          p_cursor_created_at?: string
+          p_limit?: number
+        }
+        Returns: {
+          boost_id: string
+          boost_product_id: string
+          boost_status: Database["public"]["Enums"]["boost_status"]
+          boost_type: string
+          created_at: string
+          ends_at: string
+          impression_count: number
+          like_count: number
+          match_count: number
+          multiplier: number
+          paused_at: string
+          payment_id: string
+          profile_view_count: number
+          remaining_seconds: number
+          starts_at: string
+        }[]
+      }
       get_my_moderation_reports: {
         Args: {
           p_cursor_created_at?: string
@@ -3635,6 +3800,22 @@ export type Database = {
           status: Database["public"]["Enums"]["report_status"]
           target_id: string
           target_type: Database["public"]["Enums"]["moderation_target_type"]
+        }[]
+      }
+      get_my_premium_entitlements: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          current_period_end: string
+          expires_at: string
+          features: Json
+          limits: Json
+          plan_id: string
+          plan_name: string
+          plan_slug: string
+          starts_at: string
+          subscription_id: string
+          subscription_status: Database["public"]["Enums"]["premium_subscription_status"]
+          super_like_balance: number
         }[]
       }
       get_or_create_daily_chemistry_card: {
@@ -3700,7 +3881,41 @@ export type Database = {
           user_aura_id: string
         }[]
       }
+      get_premium_plans: {
+        Args: never
+        Returns: {
+          description: string
+          duration_days: number
+          features: Json
+          limits: Json
+          name: string
+          plan_id: string
+          plan_interval: Database["public"]["Enums"]["premium_plan_interval"]
+          price_stars: number
+          price_ton: number
+          slug: string
+          sort_order: number
+        }[]
+      }
+      get_ton_boost_payment_context: {
+        Args: { p_actor_user_id: string; p_payment_id: string }
+        Returns: {
+          amount_ton: number
+          invoice_payload: string
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
       get_ton_gift_payment_context: {
+        Args: { p_actor_user_id: string; p_payment_id: string }
+        Returns: {
+          amount_ton: number
+          invoice_payload: string
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
+      get_ton_premium_payment_context: {
         Args: { p_actor_user_id: string; p_payment_id: string }
         Returns: {
           amount_ton: number
@@ -3806,6 +4021,28 @@ export type Database = {
           title: string
         }[]
       }
+      grant_verified_boost_payment: {
+        Args: {
+          p_amount_stars?: number
+          p_amount_ton?: number
+          p_payment_id: string
+          p_provider: Database["public"]["Enums"]["payment_provider"]
+          p_provider_customer_id: string
+          p_provider_payment_id: string
+          p_raw_webhook?: Json
+          p_ton_network?: Database["public"]["Enums"]["wallet_network"]
+        }
+        Returns: {
+          already_granted: boolean
+          boost_id: string
+          boost_status: Database["public"]["Enums"]["boost_status"]
+          ends_at: string
+          granted_at: string
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          starts_at: string
+        }[]
+      }
       grant_verified_gift_payment: {
         Args: {
           p_amount_stars?: number
@@ -3825,6 +4062,27 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"]
           receiver_user_id: string
           sent_gift_id: string
+        }[]
+      }
+      grant_verified_premium_payment: {
+        Args: {
+          p_amount_stars?: number
+          p_amount_ton?: number
+          p_payment_id: string
+          p_provider: Database["public"]["Enums"]["payment_provider"]
+          p_provider_customer_id: string
+          p_provider_payment_id: string
+          p_raw_webhook?: Json
+          p_ton_network?: Database["public"]["Enums"]["wallet_network"]
+        }
+        Returns: {
+          already_granted: boolean
+          current_period_end: string
+          granted_at: string
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          plan_id: string
+          subscription_id: string
         }[]
       }
       mark_all_user_notifications_read: {
@@ -3866,6 +4124,15 @@ export type Database = {
           read_at: string
         }[]
       }
+      pause_own_boost: {
+        Args: { p_actor_user_id: string; p_boost_id: string }
+        Returns: {
+          boost_id: string
+          boost_status: Database["public"]["Enums"]["boost_status"]
+          paused_at: string
+          remaining_seconds: number
+        }[]
+      }
       provision_telegram_user: {
         Args: {
           p_added_to_attachment_menu?: boolean
@@ -3881,6 +4148,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      record_boost_impressions: {
+        Args: { p_actor_user_id: string; p_target_user_ids: string[] }
+        Returns: number
       }
       record_dating_swipe: {
         Args: {
@@ -3938,6 +4209,18 @@ export type Database = {
         Args: { p_photo_ids: string[]; p_user_id: string }
         Returns: boolean
       }
+      resolve_telegram_stars_boost_payment: {
+        Args: {
+          p_amount_stars: number
+          p_invoice_payload: string
+          p_require_unexpired?: boolean
+          p_telegram_user_id: string
+        }
+        Returns: {
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
       resolve_telegram_stars_gift_payment: {
         Args: {
           p_amount_stars: number
@@ -3948,6 +4231,27 @@ export type Database = {
         Returns: {
           payment_id: string
           payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
+      resolve_telegram_stars_premium_payment: {
+        Args: {
+          p_amount_stars: number
+          p_invoice_payload: string
+          p_require_unexpired?: boolean
+          p_telegram_user_id: string
+        }
+        Returns: {
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
+      resume_own_boost: {
+        Args: { p_actor_user_id: string; p_boost_id: string }
+        Returns: {
+          boost_id: string
+          boost_status: Database["public"]["Enums"]["boost_status"]
+          ends_at: string
+          starts_at: string
         }[]
       }
       send_conversation_message: {

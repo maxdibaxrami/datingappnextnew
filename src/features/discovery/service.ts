@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { throwDatingRpcError } from '@/features/dating/errors';
 import { callDatingRpc, type DiscoveryRpcRow } from '@/features/dating/rpc';
+import { recordBoostImpressions } from '@/features/boosts/service';
 import { requireUsableAccount } from '@/lib/auth/guards';
 import { ApiError } from '@/lib/errors/api-error';
 import { decodeOpaqueCursor, encodeOpaqueCursor } from '@/lib/pagination/cursor';
@@ -79,6 +80,14 @@ export async function listDiscoveryCards(userId: string, query: DiscoveryQuery) 
 
   const rows = data ?? [];
   const pageRows = rows.slice(0, query.limit);
+  // Metrics must never make the discovery feed unavailable. The database RPC
+  // validates its own small input set and only records exposure for active
+  // boosts; a later response can safely retry an occasional failed metric call.
+  try {
+    await recordBoostImpressions(userId, pageRows.map((row) => row.user_id));
+  } catch {
+    console.error('Discovery boost impression metrics could not be recorded');
+  }
   const lastRow = pageRows.at(-1);
   if (rows.length > query.limit && !lastRow) {
     throw new ApiError(500, 'INTERNAL_ERROR', 'Discovery pagination could not be created');

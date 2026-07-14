@@ -33,14 +33,18 @@ The core backend milestones are implemented and applied to the live
   decisions (restrictions, bans, profile/photo/post actions)
 - active-match conversations, idempotent text messages, unread counts, mute
   settings, and private in-app notifications
+- verified Telegram Stars and TON premium purchases with one current
+  subscription entitlement, feature limits, and daily premium super-like claims
+- paid and premium-benefit boosts with sequential scheduling, pause/resume,
+  exposure metrics, and private discovery priority
 - database-backed rate limits and consistent API responses
 
-Database migrations live in supabase/migrations. Migrations through
-20260714230115_messaging_notifications_fk_indexes.sql are recorded in the live
-dating_app project, including Daily Chemistry, Date Ideas, Gifts/Auras/Payments,
-moderation, messaging, and notifications. Never reapply an already-recorded
-migration; check migration history before applying the next migration and
-regenerate database types after every live schema change.
+Database migrations live in supabase/migrations. The live `dating_app` project
+records the `premium_boost_backend`, `boost_discovery_integration`, and
+premium index follow-up migrations in addition to the earlier Daily Chemistry,
+Date Ideas, Gifts/Auras/Payments, moderation, and messaging work. Never
+reapply an already-recorded migration; check migration history before applying
+the next migration and regenerate database types after every live schema change.
 
 ## Local setup
 
@@ -128,6 +132,17 @@ Implemented routes:
 - GET /api/notifications
 - POST /api/notifications/:notificationId/read
 - POST /api/notifications/read-all
+- GET /api/premium/plans
+- GET /api/premium/me
+- POST /api/premium/purchases
+- POST /api/premium/payments/ton/confirm
+- POST /api/premium/claim-super-likes
+- GET /api/boosts
+- POST /api/boosts/purchases
+- POST /api/boosts/payments/ton/confirm
+- POST /api/boosts/premium
+- POST /api/boosts/:boostId/pause
+- POST /api/boosts/:boostId/resume
 
 ## Payment-provider setup
 
