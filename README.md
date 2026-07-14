@@ -3,7 +3,8 @@
 A Next.js Telegram Mini App with a trusted server backend built on Supabase Auth,
 Postgres, Storage, and row-level security.
 
-The first five backend milestones are implemented in the repository:
+The first six backend milestones are implemented and applied to the live
+`dating_app` database:
 
 - Telegram Mini App initData verification with replay expiry and constant-time
   signature comparison
@@ -28,15 +29,16 @@ The first five backend milestones are implemented in the repository:
 - server-verified Telegram webhook and TON transaction fulfillment with a
   one-payment/one-gift constraint
 - provider-neutral aura unlocks and one-active-aura activation
+- user block/unblock, reporting, a moderator queue, and auditable moderation
+  decisions (restrictions, bans, profile/photo/post actions)
 - database-backed rate limits and consistent API responses
 
 Database migrations live in supabase/migrations. Migrations through
-20260714204417_date_ideas_marketplace_backend.sql are recorded in the live
-dating_app project, including Daily Chemistry and Date Ideas. The Gifts, Auras,
-and Payments migration is present for review but is not live until it is
-explicitly approved and applied. Never reapply an already-recorded migration;
-check migration history before applying the next migration and regenerate
-database types after every live schema change.
+20260714222122_hardening_moderation_backend.sql are recorded in the live
+dating_app project, including Daily Chemistry, Date Ideas, Gifts/Auras/Payments,
+and moderation. Never reapply an already-recorded migration; check migration
+history before applying the next migration and regenerate database types after
+every live schema change.
 
 ## Local setup
 
@@ -101,11 +103,22 @@ Implemented routes:
 - GET /api/matches
 - GET /api/daily-chemistry
 - POST /api/daily-chemistry/candidates/:candidateId/view
+- GET|POST /api/date-ideas
+- POST /api/date-ideas/:dateIdeaId/bookmark
+- POST /api/date-ideas/:dateIdeaId/close
+- GET|POST /api/date-ideas/:dateIdeaId/requests
+- POST /api/date-ideas/:dateIdeaId/requests/:requestId/decision
 - GET|POST /api/gifts
 - POST /api/payments/ton/confirm
 - POST /api/payments/telegram/webhook (Telegram only; no browser session)
 - GET /api/profile/auras
 - POST /api/profile/auras/:userAuraId/activate
+- GET|POST /api/blocks
+- DELETE /api/blocks/:blockedUserId
+- GET|POST /api/reports
+- GET /api/admin/moderation (moderator/admin only)
+- POST /api/admin/moderation/:moderationQueueId/assign
+- POST /api/admin/moderation/:moderationQueueId/decision
 
 ## Payment-provider setup
 

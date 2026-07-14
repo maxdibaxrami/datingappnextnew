@@ -84,3 +84,11 @@ export async function requireDatingAccount(userId: string): Promise<AccountGate>
     denyRestrictions: ['no_swipe'],
   });
 }
+
+export async function requireModerator(userId: string): Promise<AccountGate> {
+  const gate = await requireUsableAccount(userId);
+  if (gate.role !== 'admin' && gate.role !== 'moderator') {
+    throw new ForbiddenError('Moderator access is required');
+  }
+  return gate;
+}

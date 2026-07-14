@@ -16,18 +16,16 @@ records.
 | Swipes and matches | Implemented | Unmatch workflow, likes inbox, and product entitlements |
 | Daily chemistry | Implemented and live | Preference learning and queued prewarming |
 | Date ideas | Implemented and live | Scheduled expiry and moderation workflow |
-| Gifts and auras | Implemented locally, pending live approval | Provider operations and wallet-ownership proof |
+| Gifts and auras | Implemented and live | Provider operations and wallet-ownership proof |
 | Premium and boosts | Planned | Entitlements, ledgers, and exposure events |
-| Reports and moderation | Planned | Queue, evidence, restrictions, audit trail |
+| Reports and moderation | Implemented and live | Moderator UI, verification evidence, and operational runbooks |
 | Follows and social | Planned | Follow state and feed visibility |
-| TON and Telegram Stars | Implemented locally, pending live approval | Provider operations and wallet-ownership proof |
+| TON and Telegram Stars | Implemented and live | Provider operations and wallet-ownership proof |
 
-Authentication, onboarding, discovery, swipes, undo, active-match reads, and
-Daily Chemistry and Date Ideas are exposed by the current API code and backed
-by live migrations. Gifts, profile auras, Telegram Stars, and TON have their
-service, routes, migration, guards, indexes, and tests in the feature branch,
-but are not live until the migration is approved. Other tables already present
-in the database are not automatically considered safe to use.
+Authentication, onboarding, discovery, swipes, undo, active-match reads, Daily
+Chemistry, Date Ideas, Gifts/Auras/Payments, and Reports/Moderation are exposed
+by the current API code and backed by live migrations. Other tables already
+present in the database are not automatically considered safe to use.
 
 ## Trust boundaries
 
@@ -144,7 +142,8 @@ Current advisor notes to review operationally:
 
 - private deny-all tables have RLS with no user policy by design;
 - private.current_user_is_admin() is an existing security-definer helper used
-  by RLS and should be consolidated during moderation work;
+  by RLS. Its narrow behavior is intentional, but moving role data into trusted
+  app metadata is the clean way to remove the advisor warning later;
 - leaked-password protection matters only if password login is introduced;
 - future-module foreign keys and permissive SELECT policies should be tuned
   based on real query plans rather than indexed blindly.
@@ -307,6 +306,35 @@ only the caller's auras; activating one via
 `POST /api/profile/auras/:userAuraId/activate` atomically deactivates any other
 aura for that user. A partial unique index enforces this invariant even during
 concurrent calls.
+
+### Reports, blocks, and moderation
+
+`POST /api/blocks` and `DELETE /api/blocks/:blockedUserId` are available to
+any usable account, including an account still completing its profile. A block
+is idempotent, cannot target the caller, and immediately turns an active match
+between the pair into a blocked historical match. Every discovery, dating, date
+idea, and gift workflow already checks both block directions.
+
+`POST /api/reports` accepts user/profile, profile-photo, post, or video-session
+reports. The client sends only a target ID and a bounded reason/details field;
+the database derives the content owner for photo and post reports. Video reports
+must identify the other participant explicitly until the video-session
+participant model is added. Each report atomically creates one moderation-queue
+case and records a video-report event where appropriate.
+
+Moderators and admins receive a cursor-paginated queue through
+`GET /api/admin/moderation`. They can assign a case and make an auditable
+decision through the admin routes. The atomic decision RPC can warn, hide or
+unhide a profile, remove or restore a photo/post, create/lift a restriction,
+ban/unban, record verification decisions, or leave a manual note. It writes an
+`admin_actions` audit record for every decision. Payment refunds are deliberately
+rejected here: only a provider-specific payment adapter may record a financial
+refund after it actually succeeds.
+
+All report, block, moderation queue, restriction, ban, and event tables are
+server-only; browser roles do not receive table grants or execute privileges on
+the corresponding RPCs. The Next.js route verifies the session-derived actor,
+then the database rechecks the actor's active role before the write.
 
 ## Planned module contracts
 

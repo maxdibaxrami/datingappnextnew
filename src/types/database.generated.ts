@@ -770,6 +770,7 @@ export type Database = {
           date_idea_id: string
           decided_at: string | null
           id: string
+          idempotency_key: string | null
           message: string | null
           metadata: Json
           requested_at: string
@@ -786,6 +787,7 @@ export type Database = {
           date_idea_id: string
           decided_at?: string | null
           id?: string
+          idempotency_key?: string | null
           message?: string | null
           metadata?: Json
           requested_at?: string
@@ -802,6 +804,7 @@ export type Database = {
           date_idea_id?: string
           decided_at?: string | null
           id?: string
+          idempotency_key?: string | null
           message?: string | null
           metadata?: Json
           requested_at?: string
@@ -2095,6 +2098,7 @@ export type Database = {
           details: string | null
           id: string
           post_id: string | null
+          profile_photo_id: string | null
           reason: string
           reported_user_id: string | null
           reporter_user_id: string
@@ -2110,6 +2114,7 @@ export type Database = {
           details?: string | null
           id?: string
           post_id?: string | null
+          profile_photo_id?: string | null
           reason: string
           reported_user_id?: string | null
           reporter_user_id: string
@@ -2125,6 +2130,7 @@ export type Database = {
           details?: string | null
           id?: string
           post_id?: string | null
+          profile_photo_id?: string | null
           reason?: string
           reported_user_id?: string | null
           reporter_user_id?: string
@@ -2145,6 +2151,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_profile_photo_id_fkey"
+            columns: ["profile_photo_id"]
+            isOneToOne: false
+            referencedRelation: "profile_photos"
             referencedColumns: ["id"]
           },
           {
@@ -3004,6 +3017,37 @@ export type Database = {
       }
     }
     Functions: {
+      activate_profile_aura: {
+        Args: { p_actor_user_id: string; p_user_aura_id: string }
+        Returns: {
+          activated_at: string
+          aura_id: string
+          aura_status: Database["public"]["Enums"]["profile_aura_status"]
+          expires_at: string
+          user_aura_id: string
+        }[]
+      }
+      assign_moderation_case: {
+        Args: {
+          p_actor_user_id: string
+          p_assignee_user_id?: string
+          p_moderation_queue_id: string
+        }
+        Returns: {
+          assigned_at: string
+          assigned_to_user_id: string
+          moderation_queue_id: string
+          status: Database["public"]["Enums"]["moderation_queue_status"]
+        }[]
+      }
+      close_date_idea: {
+        Args: { p_actor_user_id: string; p_date_idea_id: string }
+        Returns: {
+          closed_at: string
+          date_idea_id: string
+          date_idea_status: Database["public"]["Enums"]["date_idea_status"]
+        }[]
+      }
       consume_api_rate_limit: {
         Args: {
           p_bucket_key: string
@@ -3011,6 +3055,122 @@ export type Database = {
           p_window_seconds: number
         }
         Returns: boolean
+      }
+      create_date_idea: {
+        Args: {
+          p_actor_user_id: string
+          p_body?: string
+          p_expires_at?: string
+          p_idea_type: Database["public"]["Enums"]["date_idea_type"]
+          p_interest_tags?: string[]
+          p_language_codes?: string[]
+          p_looking_for_genders?: string[]
+          p_max_age?: number
+          p_max_requests?: number
+          p_min_age?: number
+          p_relationship_goals?: string[]
+          p_scheduled_for?: string
+          p_title: string
+          p_visibility?: Database["public"]["Enums"]["date_idea_visibility"]
+        }
+        Returns: {
+          created_at: string
+          date_idea_id: string
+          date_idea_status: Database["public"]["Enums"]["date_idea_status"]
+          expires_at: string
+          max_requests: number
+          scheduled_for: string
+        }[]
+      }
+      create_date_idea_request: {
+        Args: {
+          p_actor_user_id: string
+          p_date_idea_id: string
+          p_idempotency_key: string
+          p_message: string
+        }
+        Returns: {
+          date_idea_request_id: string
+          date_idea_status: Database["public"]["Enums"]["date_idea_status"]
+          request_status: Database["public"]["Enums"]["date_idea_request_status"]
+          requested_at: string
+        }[]
+      }
+      create_gift_payment_intent: {
+        Args: {
+          p_gift_id: string
+          p_idempotency_key: string
+          p_invoice_payload: string
+          p_is_public?: boolean
+          p_message?: string
+          p_provider: Database["public"]["Enums"]["payment_provider"]
+          p_receiver_user_id: string
+          p_sender_user_id: string
+        }
+        Returns: {
+          amount_stars: number
+          amount_ton: number
+          currency: string
+          expires_at: string
+          gift_id: string
+          gift_name: string
+          invoice_payload: string
+          payment_id: string
+          payment_provider: Database["public"]["Enums"]["payment_provider"]
+          payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
+      create_moderation_report: {
+        Args: {
+          p_details?: string
+          p_priority?: number
+          p_reason: string
+          p_reported_user_id?: string
+          p_reporter_user_id: string
+          p_target_id: string
+          p_target_type: Database["public"]["Enums"]["moderation_target_type"]
+        }
+        Returns: {
+          created_at: string
+          moderation_queue_id: string
+          queue_status: Database["public"]["Enums"]["moderation_queue_status"]
+          report_id: string
+          report_status: Database["public"]["Enums"]["report_status"]
+        }[]
+      }
+      decide_date_idea_request: {
+        Args: {
+          p_accept: boolean
+          p_actor_user_id: string
+          p_date_idea_id: string
+          p_date_idea_request_id: string
+          p_response_note?: string
+        }
+        Returns: {
+          accepted_count: number
+          date_idea_request_id: string
+          date_idea_status: Database["public"]["Enums"]["date_idea_status"]
+          decided_at: string
+          request_status: Database["public"]["Enums"]["date_idea_request_status"]
+        }[]
+      }
+      decide_moderation_case: {
+        Args: {
+          p_action_type: Database["public"]["Enums"]["admin_action_type"]
+          p_actor_user_id: string
+          p_ends_at?: string
+          p_moderation_queue_id: string
+          p_note?: string
+          p_public_message?: string
+          p_restriction_type?: Database["public"]["Enums"]["user_restriction_type"]
+        }
+        Returns: {
+          action_id: string
+          moderation_queue_id: string
+          queue_status: Database["public"]["Enums"]["moderation_queue_status"]
+          report_id: string
+          report_status: Database["public"]["Enums"]["report_status"]
+        }[]
       }
       find_user_id_by_telegram_id: {
         Args: { p_telegram_user_id: string }
@@ -3025,6 +3185,91 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["user_status"]
           user_id: string
+        }[]
+      }
+      get_date_idea_cards: {
+        Args: {
+          p_actor_user_id: string
+          p_city_name?: string
+          p_country_code?: string
+          p_cursor_created_at?: string
+          p_cursor_date_idea_id?: string
+          p_geohash_prefix?: string
+          p_idea_types?: Database["public"]["Enums"]["date_idea_type"][]
+          p_limit?: number
+        }
+        Returns: {
+          accepted_count: number
+          author_age_years: number
+          author_bio: string
+          author_display_name: string
+          author_gender: Database["public"]["Enums"]["gender_type"]
+          author_headline: string
+          author_interests: string[]
+          author_languages: string[]
+          author_last_active_at: string
+          author_online_state: Database["public"]["Enums"]["online_state"]
+          author_photo_blur_hash: string
+          author_photo_height: number
+          author_photo_url: string
+          author_photo_width: number
+          author_relationship_goals: string[]
+          author_user_id: string
+          body: string
+          bookmarked: boolean
+          city_name: string
+          country_code: string
+          date_idea_id: string
+          expires_at: string
+          geohash_prefix: string
+          idea_type: Database["public"]["Enums"]["date_idea_type"]
+          interest_tags: string[]
+          language_codes: string[]
+          looking_for_genders: string[]
+          max_age: number
+          max_requests: number
+          min_age: number
+          my_request_status: Database["public"]["Enums"]["date_idea_request_status"]
+          relationship_goals: string[]
+          request_count: number
+          scheduled_for: string
+          sort_created_at: string
+          title: string
+          venue_hint: string
+          venue_name: string
+          visibility: Database["public"]["Enums"]["date_idea_visibility"]
+        }[]
+      }
+      get_date_idea_requests: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_request_id?: string
+          p_cursor_requested_at?: string
+          p_date_idea_id: string
+          p_limit?: number
+          p_statuses?: Database["public"]["Enums"]["date_idea_request_status"][]
+        }
+        Returns: {
+          date_idea_request_id: string
+          decided_at: string
+          message: string
+          request_status: Database["public"]["Enums"]["date_idea_request_status"]
+          requested_at: string
+          requester_age_years: number
+          requester_bio: string
+          requester_display_name: string
+          requester_gender: Database["public"]["Enums"]["gender_type"]
+          requester_headline: string
+          requester_interests: string[]
+          requester_languages: string[]
+          requester_photo_blur_hash: string
+          requester_photo_height: number
+          requester_photo_url: string
+          requester_photo_width: number
+          requester_relationship_goals: string[]
+          requester_user_id: string
+          response_note: string
+          sort_requested_at: string
         }[]
       }
       get_discovery_cards: {
@@ -3072,6 +3317,71 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_gift_catalog: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          asset_type: Database["public"]["Enums"]["gift_asset_type"]
+          asset_url: string
+          category_emoji: string
+          category_name: string
+          category_slug: string
+          description: string
+          gift_effect: string
+          gift_id: string
+          name: string
+          price_stars: number
+          price_ton: number
+          profile_aura_effect: string
+          rarity: Database["public"]["Enums"]["gift_rarity"]
+          slug: string
+          thumbnail_url: string
+        }[]
+      }
+      get_moderation_queue: {
+        Args: {
+          p_actor_user_id: string
+          p_assigned_to_me?: boolean
+          p_cursor_created_at?: string
+          p_cursor_queue_id?: string
+          p_limit?: number
+          p_statuses?: Database["public"]["Enums"]["moderation_queue_status"][]
+        }
+        Returns: {
+          assigned_at: string
+          assigned_to_user_id: string
+          created_at: string
+          details: string
+          moderation_queue_id: string
+          opened_at: string
+          priority: number
+          reason: string
+          report_id: string
+          reported_user_id: string
+          reporter_user_id: string
+          status: Database["public"]["Enums"]["moderation_queue_status"]
+          target_id: string
+          target_type: Database["public"]["Enums"]["moderation_target_type"]
+          updated_at: string
+        }[]
+      }
+      get_my_moderation_reports: {
+        Args: {
+          p_cursor_created_at?: string
+          p_cursor_report_id?: string
+          p_limit?: number
+          p_reporter_user_id: string
+        }
+        Returns: {
+          created_at: string
+          decided_at: string
+          public_message: string
+          reason: string
+          report_id: string
+          status: Database["public"]["Enums"]["report_status"]
+          target_id: string
+          target_type: Database["public"]["Enums"]["moderation_target_type"]
+        }[]
+      }
       get_or_create_daily_chemistry_card: {
         Args: { p_actor_user_id: string }
         Returns: {
@@ -3116,6 +3426,47 @@ export type Database = {
           total_candidates: number
         }[]
       }
+      get_own_profile_auras: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          activated_at: string
+          animation_metadata: Json
+          aura_id: string
+          aura_key: string
+          aura_status: Database["public"]["Enums"]["profile_aura_status"]
+          css_tokens: Json
+          description: string
+          expires_at: string
+          is_active: boolean
+          name: string
+          preview_url: string
+          slug: string
+          unlocked_at: string
+          user_aura_id: string
+        }[]
+      }
+      get_ton_gift_payment_context: {
+        Args: { p_actor_user_id: string; p_payment_id: string }
+        Returns: {
+          amount_ton: number
+          invoice_payload: string
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
+      get_user_blocks: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_created_at?: string
+          p_cursor_user_id?: string
+          p_limit?: number
+        }
+        Returns: {
+          blocked_user_id: string
+          created_at: string
+          reason: string
+        }[]
+      }
       get_user_matches: {
         Args: {
           p_actor_user_id: string
@@ -3148,6 +3499,27 @@ export type Database = {
           primary_photo_width: number
           public_geohash_prefix: string
           relationship_goals: string[]
+        }[]
+      }
+      grant_verified_gift_payment: {
+        Args: {
+          p_amount_stars?: number
+          p_amount_ton?: number
+          p_payment_id: string
+          p_provider: Database["public"]["Enums"]["payment_provider"]
+          p_provider_customer_id: string
+          p_provider_payment_id: string
+          p_raw_webhook?: Json
+          p_ton_network?: Database["public"]["Enums"]["wallet_network"]
+        }
+        Returns: {
+          already_granted: boolean
+          gift_id: string
+          granted_at: string
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          receiver_user_id: string
+          sent_gift_id: string
         }[]
       }
       mark_daily_chemistry_candidate_viewed: {
@@ -3221,13 +3593,56 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      remove_user_block: {
+        Args: { p_actor_user_id: string; p_blocked_user_id: string }
+        Returns: {
+          blocked_user_id: string
+          removed: boolean
+        }[]
+      }
       reorder_profile_photos: {
         Args: { p_photo_ids: string[]; p_user_id: string }
         Returns: boolean
       }
+      resolve_telegram_stars_gift_payment: {
+        Args: {
+          p_amount_stars: number
+          p_invoice_payload: string
+          p_require_unexpired?: boolean
+          p_telegram_user_id: string
+        }
+        Returns: {
+          payment_id: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
+      set_date_idea_bookmark: {
+        Args: {
+          p_actor_user_id: string
+          p_bookmarked: boolean
+          p_date_idea_id: string
+        }
+        Returns: {
+          bookmarked: boolean
+          date_idea_id: string
+        }[]
+      }
       set_primary_profile_photo: {
         Args: { p_photo_id: string; p_user_id: string }
         Returns: boolean
+      }
+      set_user_block: {
+        Args: {
+          p_actor_user_id: string
+          p_blocked_user_id: string
+          p_reason?: string
+        }
+        Returns: {
+          blocked_user_id: string
+          blocker_user_id: string
+          created: boolean
+          created_at: string
+        }[]
       }
       soft_delete_profile_photo: {
         Args: { p_photo_id: string; p_user_id: string }
