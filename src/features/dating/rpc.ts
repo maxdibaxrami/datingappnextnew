@@ -5,135 +5,81 @@ import { type PostgrestError } from '@supabase/supabase-js';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { type Database } from '@/types/database.generated';
 
-type DiscoverySurface = Database['public']['Enums']['discovery_surface'];
-type Gender = Database['public']['Enums']['gender_type'];
-type MatchSource = Database['public']['Enums']['match_source'];
-type MatchStatus = Database['public']['Enums']['match_status'];
-type OnlineState = Database['public']['Enums']['online_state'];
-type SwipeAction = Database['public']['Enums']['swipe_action_type'];
+type DatingRpcName =
+  | 'get_discovery_cards'
+  | 'get_user_matches'
+  | 'record_swipe_action'
+  | 'undo_latest_swipe';
 
-export interface DiscoveryRpcRow {
-  age_years: number | null;
-  badges: string[];
-  bio: string | null;
-  city_name: string | null;
-  country_code: string | null;
-  display_name: string | null;
-  gender: Gender | null;
-  gifts_received: number | null;
-  headline: string | null;
-  interests: string[];
-  intents: string[];
-  languages: string[];
-  last_active_at: string | null;
-  likes_received: number | null;
-  mood: string | null;
-  online_state: OnlineState;
-  popularity_score: number | null;
-  primary_photo_blur_hash: string | null;
-  primary_photo_height: number | null;
-  primary_photo_url: string;
-  primary_photo_width: number | null;
-  profile_completion_score: number | null;
-  public_geohash_prefix: string | null;
-  relationship_goals: string[];
-  sort_at: string;
-  user_id: string;
-}
+type RpcArgs<Name extends DatingRpcName> =
+  Database['public']['Functions'][Name]['Args'];
+type RpcReturns<Name extends DatingRpcName> =
+  Database['public']['Functions'][Name]['Returns'];
+type NullableFields<Row, Keys extends keyof Row> = Omit<Row, Keys> & {
+  [Key in Keys]: Row[Key] | null;
+};
 
-export interface SwipeRpcRow {
-  action_created_at: string;
-  action_id: string;
-  action_type: SwipeAction;
-  match_created: boolean;
-  match_id: string | null;
-  match_status: MatchStatus | null;
-  matched_at: string | null;
-  source_surface: DiscoverySurface;
-  target_user_id: string;
-}
+type GeneratedDiscoveryRpcRow = RpcReturns<'get_discovery_cards'>[number];
+export type DiscoveryRpcRow = NullableFields<GeneratedDiscoveryRpcRow,
+  | 'age_years'
+  | 'bio'
+  | 'city_name'
+  | 'country_code'
+  | 'display_name'
+  | 'gender'
+  | 'gifts_received'
+  | 'headline'
+  | 'last_active_at'
+  | 'likes_received'
+  | 'mood'
+  | 'popularity_score'
+  | 'primary_photo_blur_hash'
+  | 'primary_photo_height'
+  | 'primary_photo_width'
+  | 'profile_completion_score'
+  | 'public_geohash_prefix'
+>;
 
-export interface UndoRpcRow {
-  action_created_at: string;
-  action_id: string;
-  action_type: SwipeAction;
-  source_surface: DiscoverySurface;
-  target_user_id: string;
-  undone_action_id: string;
-}
+type GeneratedSwipeRpcRow = RpcReturns<'record_swipe_action'>[number];
+export type SwipeRpcRow = NullableFields<GeneratedSwipeRpcRow,
+  'match_id' | 'match_status' | 'matched_at'
+>;
 
-export interface MatchRpcRow {
-  age_years: number | null;
-  bio: string | null;
-  city_name: string | null;
-  country_code: string | null;
-  display_name: string | null;
-  gender: Gender | null;
-  headline: string | null;
-  interests: string[];
-  languages: string[];
-  last_active_at: string | null;
-  last_interaction_at: string;
-  match_id: string;
-  match_source: MatchSource;
-  match_status: MatchStatus;
-  matched_at: string;
-  mood: string | null;
-  online_state: OnlineState;
-  other_user_id: string;
-  primary_photo_blur_hash: string | null;
-  primary_photo_height: number | null;
-  primary_photo_url: string | null;
-  primary_photo_width: number | null;
-  public_geohash_prefix: string | null;
-  relationship_goals: string[];
-}
+export type UndoRpcRow = RpcReturns<'undo_latest_swipe'>[number];
+
+type GeneratedMatchRpcRow = RpcReturns<'get_user_matches'>[number];
+export type MatchRpcRow = NullableFields<GeneratedMatchRpcRow,
+  | 'age_years'
+  | 'bio'
+  | 'city_name'
+  | 'country_code'
+  | 'display_name'
+  | 'gender'
+  | 'headline'
+  | 'last_active_at'
+  | 'mood'
+  | 'primary_photo_blur_hash'
+  | 'primary_photo_height'
+  | 'primary_photo_url'
+  | 'primary_photo_width'
+  | 'public_geohash_prefix'
+>;
 
 interface DatingRpcDefinitions {
   get_discovery_cards: {
-    Args: {
-      p_actor_user_id: string;
-      p_city_name: string | null;
-      p_country_code: string | null;
-      p_cursor_sort_at: string | null;
-      p_cursor_user_id: string | null;
-      p_genders: Gender[] | null;
-      p_geohash_prefix: string | null;
-      p_interests: string[] | null;
-      p_languages: string[] | null;
-      p_limit: number;
-      p_max_age: number | null;
-      p_min_age: number | null;
-      p_relationship_goals: string[] | null;
-    };
+    Args: RpcArgs<'get_discovery_cards'>;
     Returns: DiscoveryRpcRow[];
   };
   get_user_matches: {
-    Args: {
-      p_actor_user_id: string;
-      p_cursor_match_id: string | null;
-      p_cursor_matched_at: string | null;
-      p_limit: number;
-    };
+    Args: RpcArgs<'get_user_matches'>;
     Returns: MatchRpcRow[];
   };
   record_swipe_action: {
-    Args: {
-      p_action_type: Exclude<SwipeAction, 'undo'>;
-      p_actor_user_id: string;
-      p_idempotency_key: string;
-      p_source_surface: DiscoverySurface;
-      p_target_user_id: string;
-    };
+    Args: RpcArgs<'record_swipe_action'>;
     Returns: SwipeRpcRow[];
   };
   undo_latest_swipe: {
-    Args: {
-      p_actor_user_id: string;
-      p_idempotency_key: string;
-      p_target_user_id: string | null;
-      p_window_seconds: number;
-    };
+    Args: RpcArgs<'undo_latest_swipe'>;
     Returns: UndoRpcRow[];
   };
 }
@@ -152,8 +98,6 @@ export async function callDatingRpc<Name extends keyof DatingRpcDefinitions>(
   functionName: Name,
   args: DatingRpcDefinitions[Name]['Args'],
 ): Promise<RpcResponse<DatingRpcDefinitions[Name]['Returns']>> {
-  // These definitions live beside the migration until the migration is
-  // deployed and the generated project types can be refreshed from Supabase.
   const admin = getSupabaseAdmin();
   const rpc = admin.rpc.bind(admin) as unknown as UntypedRpc;
   const result = await rpc(functionName, args);

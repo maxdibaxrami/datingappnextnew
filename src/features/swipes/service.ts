@@ -67,7 +67,7 @@ export async function undoSwipe(userId: string, input: UndoSwipeInput) {
   const { data, error } = await callDatingRpc('undo_latest_swipe', {
     p_actor_user_id: userId,
     p_idempotency_key: input.idempotencyKey,
-    p_target_user_id: input.targetUserId ?? null,
+    p_target_user_id: input.targetUserId,
     p_window_seconds: 300,
   });
   if (error) {

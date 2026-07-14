@@ -20,11 +20,11 @@ The first two backend milestones are implemented:
 - cursor-paginated active match reads
 - database-backed rate limits and consistent API responses
 
-Database migrations live in supabase/migrations. The foundation migration is
-already recorded in production. Apply
-20260714182456_discovery_swipes_matches.sql before deploying the discovery,
-swipe, and match routes, then regenerate src/types/database.generated.ts. Never
-reapply an already-recorded migration; check migration history first.
+Database migrations live in supabase/migrations. The foundation and dating-loop
+migrations through 20260714190104_fix_latest_swipe_ordering.sql are already
+recorded in the live dating_app project. The checked-in generated database types
+match that schema. Never reapply an already-recorded migration; check migration
+history before applying the next migration.
 
 ## Local setup
 

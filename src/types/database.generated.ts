@@ -2328,28 +2328,40 @@ export type Database = {
       }
       swipe_actions: {
         Row: {
+          action_sequence: number
           action_type: Database["public"]["Enums"]["swipe_action_type"]
           actor_user_id: string
           created_at: string
           id: string
+          idempotency_key: string | null
           source_surface: Database["public"]["Enums"]["discovery_surface"]
           target_user_id: string
+          undoes_action_id: string | null
+          undone_at: string | null
         }
         Insert: {
+          action_sequence?: never
           action_type: Database["public"]["Enums"]["swipe_action_type"]
           actor_user_id: string
           created_at?: string
           id?: string
+          idempotency_key?: string | null
           source_surface?: Database["public"]["Enums"]["discovery_surface"]
           target_user_id: string
+          undoes_action_id?: string | null
+          undone_at?: string | null
         }
         Update: {
+          action_sequence?: never
           action_type?: Database["public"]["Enums"]["swipe_action_type"]
           actor_user_id?: string
           created_at?: string
           id?: string
+          idempotency_key?: string | null
           source_surface?: Database["public"]["Enums"]["discovery_surface"]
           target_user_id?: string
+          undoes_action_id?: string | null
+          undone_at?: string | null
         }
         Relationships: [
           {
@@ -2364,6 +2376,13 @@ export type Database = {
             columns: ["target_user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swipe_actions_undoes_action_id_fkey"
+            columns: ["undoes_action_id"]
+            isOneToOne: false
+            referencedRelation: "swipe_actions"
             referencedColumns: ["id"]
           },
         ]
@@ -3008,6 +3027,85 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_discovery_cards: {
+        Args: {
+          p_actor_user_id: string
+          p_city_name?: string
+          p_country_code?: string
+          p_cursor_sort_at?: string
+          p_cursor_user_id?: string
+          p_genders?: Database["public"]["Enums"]["gender_type"][]
+          p_geohash_prefix?: string
+          p_interests?: string[]
+          p_languages?: string[]
+          p_limit?: number
+          p_max_age?: number
+          p_min_age?: number
+          p_relationship_goals?: string[]
+        }
+        Returns: {
+          age_years: number
+          badges: string[]
+          bio: string
+          city_name: string
+          country_code: string
+          display_name: string
+          gender: Database["public"]["Enums"]["gender_type"]
+          gifts_received: number
+          headline: string
+          intents: string[]
+          interests: string[]
+          languages: string[]
+          last_active_at: string
+          likes_received: number
+          mood: string
+          online_state: Database["public"]["Enums"]["online_state"]
+          popularity_score: number
+          primary_photo_blur_hash: string
+          primary_photo_height: number
+          primary_photo_url: string
+          primary_photo_width: number
+          profile_completion_score: number
+          public_geohash_prefix: string
+          relationship_goals: string[]
+          sort_at: string
+          user_id: string
+        }[]
+      }
+      get_user_matches: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_match_id?: string
+          p_cursor_matched_at?: string
+          p_limit?: number
+        }
+        Returns: {
+          age_years: number
+          bio: string
+          city_name: string
+          country_code: string
+          display_name: string
+          gender: Database["public"]["Enums"]["gender_type"]
+          headline: string
+          interests: string[]
+          languages: string[]
+          last_active_at: string
+          last_interaction_at: string
+          match_id: string
+          match_source: Database["public"]["Enums"]["match_source"]
+          match_status: Database["public"]["Enums"]["match_status"]
+          matched_at: string
+          mood: string
+          online_state: Database["public"]["Enums"]["online_state"]
+          other_user_id: string
+          primary_photo_blur_hash: string
+          primary_photo_height: number
+          primary_photo_url: string
+          primary_photo_width: number
+          public_geohash_prefix: string
+          relationship_goals: string[]
+        }[]
+      }
       provision_telegram_user: {
         Args: {
           p_added_to_attachment_menu?: boolean
@@ -3024,6 +3122,26 @@ export type Database = {
         }
         Returns: string
       }
+      record_swipe_action: {
+        Args: {
+          p_action_type: Database["public"]["Enums"]["swipe_action_type"]
+          p_actor_user_id: string
+          p_idempotency_key: string
+          p_source_surface: Database["public"]["Enums"]["discovery_surface"]
+          p_target_user_id: string
+        }
+        Returns: {
+          action_created_at: string
+          action_id: string
+          action_type: Database["public"]["Enums"]["swipe_action_type"]
+          match_created: boolean
+          match_id: string
+          match_status: Database["public"]["Enums"]["match_status"]
+          matched_at: string
+          source_surface: Database["public"]["Enums"]["discovery_surface"]
+          target_user_id: string
+        }[]
+      }
       refresh_profile_completion: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -3039,6 +3157,22 @@ export type Database = {
       soft_delete_profile_photo: {
         Args: { p_photo_id: string; p_user_id: string }
         Returns: string
+      }
+      undo_latest_swipe: {
+        Args: {
+          p_actor_user_id: string
+          p_idempotency_key: string
+          p_target_user_id?: string
+          p_window_seconds?: number
+        }
+        Returns: {
+          action_created_at: string
+          action_id: string
+          action_type: Database["public"]["Enums"]["swipe_action_type"]
+          source_surface: Database["public"]["Enums"]["discovery_surface"]
+          target_user_id: string
+          undone_action_id: string
+        }[]
       }
     }
     Enums: {

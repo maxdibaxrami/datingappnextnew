@@ -206,8 +206,10 @@ client-generated UUID idempotency key. The atomic RPC:
 
 POST /api/swipes/undo preserves history by timestamping the original action and
 inserting a linked undo event. Only the globally latest current action can be
-undone, only within five minutes, and never after it formed an active match.
-Undo refunds an actually spent super-like in the same transaction.
+undone, only within five minutes, and never after it formed an active match. An
+internal identity sequence orders actions deterministically even when several
+actions share a transaction timestamp. Undo refunds an actually spent
+super-like in the same transaction.
 
 GET /api/matches returns active, unblocked matches with safe opponent media and
 an opaque matched-at/UUID cursor. A no_swipe restriction does not prevent a user

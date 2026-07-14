@@ -59,8 +59,8 @@ export async function listMatches(userId: string, query: MatchQuery) {
 
   const { data, error } = await callDatingRpc('get_user_matches', {
     p_actor_user_id: userId,
-    p_cursor_match_id: cursor?.matchId ?? null,
-    p_cursor_matched_at: cursor?.matchedAt ?? null,
+    p_cursor_match_id: cursor?.matchId,
+    p_cursor_matched_at: cursor?.matchedAt,
     p_limit: query.limit + 1,
   });
   if (error) {

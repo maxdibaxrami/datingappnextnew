@@ -58,20 +58,20 @@ export async function listDiscoveryCards(userId: string, query: DiscoveryQuery) 
 
   const { data, error } = await callDatingRpc('get_discovery_cards', {
     p_actor_user_id: userId,
-    p_city_name: query.cityName ?? null,
-    p_country_code: query.countryCode ?? null,
-    p_cursor_sort_at: cursor?.sortAt ?? null,
-    p_cursor_user_id: cursor?.userId ?? null,
-    p_genders: query.genders.length > 0 ? query.genders : null,
-    p_geohash_prefix: query.geohashPrefix ?? null,
-    p_interests: query.interests.length > 0 ? query.interests : null,
-    p_languages: query.languages.length > 0 ? query.languages : null,
+    p_city_name: query.cityName,
+    p_country_code: query.countryCode,
+    p_cursor_sort_at: cursor?.sortAt,
+    p_cursor_user_id: cursor?.userId,
+    p_genders: query.genders.length > 0 ? query.genders : undefined,
+    p_geohash_prefix: query.geohashPrefix,
+    p_interests: query.interests.length > 0 ? query.interests : undefined,
+    p_languages: query.languages.length > 0 ? query.languages : undefined,
     p_limit: query.limit + 1,
-    p_max_age: query.maxAge ?? null,
-    p_min_age: query.minAge ?? null,
+    p_max_age: query.maxAge,
+    p_min_age: query.minAge,
     p_relationship_goals: query.relationshipGoals.length > 0
       ? query.relationshipGoals
-      : null,
+      : undefined,
   });
   if (error) {
     throwDatingRpcError(error, 'Discovery profiles could not be loaded');
