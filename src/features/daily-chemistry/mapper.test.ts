@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type DailyChemistryRpcRow } from './rpc';
+import { type DailyChemistryRpcRow } from './types';
 import { mapDailyChemistryRows } from './mapper';
 
 const emptyCardRow: DailyChemistryRpcRow = {

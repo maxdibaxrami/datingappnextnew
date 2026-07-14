@@ -5,7 +5,12 @@ import { describe, expect, it } from 'vitest';
 
 const migration = readFileSync(resolve(
   process.cwd(),
-  'supabase/migrations/20260714192407_daily_chemistry_backend.sql',
+  'supabase/migrations/20260714195549_daily_chemistry_backend.sql',
+), 'utf8');
+
+const indexMigration = readFileSync(resolve(
+  process.cwd(),
+  'supabase/migrations/20260714200110_fix_daily_chemistry_card_viewer_fk_index.sql',
 ), 'utf8');
 
 describe('Daily Chemistry migration contract', () => {
@@ -14,6 +19,10 @@ describe('Daily Chemistry migration contract', () => {
     expect(migration).toContain('remaining_candidates <= total_candidates');
     expect(migration).toContain('where ranked.calculated_rank <= 3');
     expect(migration).toContain('daily_chemistry_cards_user_id_card_date_key');
+    expect(indexMigration).toContain(
+      'daily_chemistry_candidates_card_viewer_idx',
+    );
+    expect(indexMigration).toContain('(card_id, viewer_user_id)');
   });
 
   it('uses safe eligibility and a bounded compatibility pool', () => {

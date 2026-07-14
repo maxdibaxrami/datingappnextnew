@@ -1,3 +1,4 @@
+-- Recorded in live Supabase migration history as version 20260714195549.
 begin;
 
 -- Daily Chemistry is backend-only. The browser receives only the narrow card

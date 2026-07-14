@@ -23,11 +23,10 @@ The first three backend milestones are implemented in the repository:
 - atomic candidate view, swipe, match, expiry, and undo state reconciliation
 - database-backed rate limits and consistent API responses
 
-Database migrations live in supabase/migrations. The foundation and dating-loop
-migrations through 20260714190104_fix_latest_swipe_ordering.sql are already
-recorded in the live dating_app project. The Daily Chemistry migration
-20260714192407_daily_chemistry_backend.sql is not live yet and must be applied
-before deploying its routes. Never reapply an already-recorded migration; check
+Database migrations live in supabase/migrations. Migrations through
+20260714200110_fix_daily_chemistry_card_viewer_fk_index.sql are recorded in the
+live dating_app project, including Daily Chemistry. The generated database types
+match that live schema. Never reapply an already-recorded migration; check
 migration history before applying the next migration and regenerate database
 types after every live schema change.
 

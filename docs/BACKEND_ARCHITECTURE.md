@@ -14,7 +14,7 @@ records.
 | Profile photo originals | Implemented | Moderation worker and public derivatives |
 | Discovery | Implemented | Ranking experiments, travel mode, and public profile detail |
 | Swipes and matches | Implemented | Unmatch workflow, likes inbox, and product entitlements |
-| Daily chemistry | Implemented, pending deployment | Preference learning and queued prewarming |
+| Daily chemistry | Implemented and live | Preference learning and queued prewarming |
 | Date ideas | Planned | Marketplace browsing and request workflow |
 | Gifts and auras | Planned | Verified-payment fulfillment |
 | Premium and boosts | Planned | Entitlements, ledgers, and exposure events |
@@ -23,11 +23,10 @@ records.
 | TON and Telegram Stars | Planned | Provider verification and idempotent grants |
 
 Authentication, onboarding, discovery, swipes, undo, active-match reads, and
-Daily Chemistry are exposed by the current API code. The Daily Chemistry routes
-must not be deployed before their migration. Other tables already present in
-the database are not automatically considered safe to use. Each module requires
-its own service, validation, guards, indexes, and tests before routes are
-enabled.
+Daily Chemistry are exposed by the current API code and backed by live
+migrations. Other tables already present in the database are not automatically
+considered safe to use. Each module requires its own service, validation,
+guards, indexes, and tests before routes are enabled.
 
 ## Trust boundaries
 

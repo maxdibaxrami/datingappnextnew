@@ -3,13 +3,14 @@ import 'server-only';
 import { throwDatingRpcError } from '@/features/dating/errors';
 import { requireUsableAccount } from '@/lib/auth/guards';
 import { ApiError } from '@/lib/errors/api-error';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 
 import { mapDailyChemistryRows } from './mapper';
-import { callDailyChemistryRpc } from './rpc';
+import { type ViewedCandidateRpcRow } from './types';
 
 export async function getDailyChemistryCard(userId: string) {
   await requireUsableAccount(userId, { completedProfile: true });
-  const { data, error } = await callDailyChemistryRpc(
+  const { data, error } = await getSupabaseAdmin().rpc(
     'get_or_create_daily_chemistry_card',
     { p_actor_user_id: userId },
   );
@@ -24,7 +25,7 @@ export async function markDailyChemistryCandidateViewed(
   candidateId: string,
 ) {
   await requireUsableAccount(userId, { completedProfile: true });
-  const { data, error } = await callDailyChemistryRpc(
+  const { data, error } = await getSupabaseAdmin().rpc(
     'mark_daily_chemistry_candidate_viewed',
     {
       p_actor_user_id: userId,
@@ -34,7 +35,7 @@ export async function markDailyChemistryCandidateViewed(
   if (error) {
     throwDatingRpcError(error, 'The Daily Chemistry candidate could not be updated');
   }
-  const row = data?.[0];
+  const row = data?.[0] as ViewedCandidateRpcRow | undefined;
   if (!row) {
     throw new ApiError(500, 'INTERNAL_ERROR', 'The candidate view result was empty');
   }

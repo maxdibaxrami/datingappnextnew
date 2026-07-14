@@ -1,15 +1,13 @@
 import 'server-only';
 
-import { type PostgrestError } from '@supabase/supabase-js';
-
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { type Database } from '@/types/database.generated';
 
 type DatingRpcName =
   | 'get_discovery_cards'
   | 'get_user_matches'
-  | 'record_swipe_action'
-  | 'undo_latest_swipe';
+  | 'record_dating_swipe'
+  | 'undo_dating_swipe';
 
 type RpcArgs<Name extends DatingRpcName> =
   Database['public']['Functions'][Name]['Args'];
@@ -40,12 +38,12 @@ export type DiscoveryRpcRow = NullableFields<GeneratedDiscoveryRpcRow,
   | 'public_geohash_prefix'
 >;
 
-type GeneratedSwipeRpcRow = RpcReturns<'record_swipe_action'>[number];
+type GeneratedSwipeRpcRow = RpcReturns<'record_dating_swipe'>[number];
 export type SwipeRpcRow = NullableFields<GeneratedSwipeRpcRow,
   'match_id' | 'match_status' | 'matched_at'
 >;
 
-export type UndoRpcRow = RpcReturns<'undo_latest_swipe'>[number];
+export type UndoRpcRow = RpcReturns<'undo_dating_swipe'>[number];
 
 type GeneratedMatchRpcRow = RpcReturns<'get_user_matches'>[number];
 export type MatchRpcRow = NullableFields<GeneratedMatchRpcRow,
@@ -65,43 +63,9 @@ export type MatchRpcRow = NullableFields<GeneratedMatchRpcRow,
   | 'public_geohash_prefix'
 >;
 
-interface DatingRpcDefinitions {
-  get_discovery_cards: {
-    Args: RpcArgs<'get_discovery_cards'>;
-    Returns: DiscoveryRpcRow[];
-  };
-  get_user_matches: {
-    Args: RpcArgs<'get_user_matches'>;
-    Returns: MatchRpcRow[];
-  };
-  record_dating_swipe: {
-    Args: RpcArgs<'record_swipe_action'> & {
-      p_daily_chemistry_candidate_id?: string;
-    };
-    Returns: SwipeRpcRow[];
-  };
-  undo_dating_swipe: {
-    Args: RpcArgs<'undo_latest_swipe'>;
-    Returns: UndoRpcRow[];
-  };
-}
-
-interface RpcResponse<T> {
-  data: T | null;
-  error: PostgrestError | null;
-}
-
-type UntypedRpc = (
-  functionName: string,
-  args: Record<string, unknown>,
-) => PromiseLike<RpcResponse<unknown>>;
-
-export async function callDatingRpc<Name extends keyof DatingRpcDefinitions>(
+export function callDatingRpc<Name extends DatingRpcName>(
   functionName: Name,
-  args: DatingRpcDefinitions[Name]['Args'],
-): Promise<RpcResponse<DatingRpcDefinitions[Name]['Returns']>> {
-  const admin = getSupabaseAdmin();
-  const rpc = admin.rpc.bind(admin) as unknown as UntypedRpc;
-  const result = await rpc(functionName, args);
-  return result as RpcResponse<DatingRpcDefinitions[Name]['Returns']>;
+  args: RpcArgs<Name>,
+) {
+  return getSupabaseAdmin().rpc(functionName, args);
 }

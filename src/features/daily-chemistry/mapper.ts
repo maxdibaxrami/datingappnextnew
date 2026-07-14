@@ -1,6 +1,6 @@
 import { ApiError } from '@/lib/errors/api-error';
 
-import { type DailyChemistryRpcRow } from './rpc';
+import { type DailyChemistryRpcRow } from './types';
 
 function mapCandidate(row: DailyChemistryRpcRow) {
   if (
