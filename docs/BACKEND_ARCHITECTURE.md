@@ -15,19 +15,19 @@ records.
 | Discovery | Implemented | Ranking experiments, travel mode, and public profile detail |
 | Swipes and matches | Implemented | Unmatch workflow, likes inbox, and product entitlements |
 | Daily chemistry | Implemented and live | Preference learning and queued prewarming |
-| Date ideas | Implemented locally, pending live approval | Marketplace browsing and request workflow |
-| Gifts and auras | Planned | Verified-payment fulfillment |
+| Date ideas | Implemented and live | Scheduled expiry and moderation workflow |
+| Gifts and auras | Implemented locally, pending live approval | Provider operations and wallet-ownership proof |
 | Premium and boosts | Planned | Entitlements, ledgers, and exposure events |
 | Reports and moderation | Planned | Queue, evidence, restrictions, audit trail |
 | Follows and social | Planned | Follow state and feed visibility |
-| TON and Telegram Stars | Planned | Provider verification and idempotent grants |
+| TON and Telegram Stars | Implemented locally, pending live approval | Provider operations and wallet-ownership proof |
 
 Authentication, onboarding, discovery, swipes, undo, active-match reads, and
-Daily Chemistry are exposed by the current API code and backed by live
-migrations. Date Ideas has its service, routes, migration, guards, indexes, and
-tests in the feature branch, but is not live until the migration is approved.
-Other tables already present in the database are not automatically considered
-safe to use.
+Daily Chemistry and Date Ideas are exposed by the current API code and backed
+by live migrations. Gifts, profile auras, Telegram Stars, and TON have their
+service, routes, migration, guards, indexes, and tests in the feature branch,
+but are not live until the migration is approved. Other tables already present
+in the database are not automatically considered safe to use.
 
 ## Trust boundaries
 
@@ -266,6 +266,48 @@ request listing, accept/reject, and close operations each run through a
 server-only security-definer RPC. A per-idea advisory lock makes competing
 requests, decisions, expiry, and close updates atomic.
 
+### Gifts, profile auras, and payments
+
+`GET /api/gifts` returns only active catalog items to a completed, usable
+account. `POST /api/gifts` accepts the gift, receiver, provider, presentation
+data, and a client-generated idempotency UUID; it never accepts a sender ID,
+amount, or product price. The database checks the sender/receiver account
+state, `no_gift` restriction, completed profile, self-gifting, bans, and both
+block directions before creating one private gift-payment intent. Intents expire
+after 15 minutes; retrying an expired or already-settled intent requires a new
+idempotency UUID.
+
+Telegram Stars intents return a server-created invoice link. The Telegram
+webhook endpoint is protected by a constant-time comparison of Telegram's
+secret header. It rechecks the opaque payload, Telegram identity, currency, and
+Stars amount before calling the atomic fulfillment RPC. The successful-payment
+charge ID is unique, so webhook retries are harmless.
+
+TON intents return the exact receiver address, nanoTON amount, expiry, and
+opaque comment to use with TON Connect. Confirmation fetches the transaction
+from the configured TON API and requires the exact transaction hash,
+destination, minimum amount, and payment comment before fulfillment. The source
+address and raw verified transaction are retained server-side. A future
+TON-connect proof verifier should bind a wallet address to a user before using
+wallet-owned features; a client-provided address is never trusted as proof.
+
+Expiry prevents new payment initiation (and Telegram Stars pre-checkout) after
+the deadline. A provider-confirmed payment remains idempotently fulfillable so
+that a late webhook never silently strands settled value; refund/review handling
+for exceptional post-payment cases belongs to the future payments operations
+module. The authenticated TON confirmation endpoint therefore verifies only the
+caller-owned pending payment when settling an already-sent transfer; it does not
+re-open general dating access for a restricted account.
+
+Fulfillment first records the verified provider payment, then inserts exactly
+one `sent_gifts` record, and then sets `granted_at`, all in one database
+transaction. A database trigger unlocks all qualifying auras after the verified
+gift insert and records an immutable aura event. `GET /api/profile/auras` lists
+only the caller's auras; activating one via
+`POST /api/profile/auras/:userAuraId/activate` atomically deactivates any other
+aura for that user. A partial unique index enforces this invariant even during
+concurrent calls.
+
 ## Planned module contracts
 
 ### Date ideas
@@ -273,12 +315,12 @@ requests, decisions, expiry, and close updates atomic.
 Add scheduled expiry and moderation workflows after the core marketplace is
 approved and live.
 
-### Gifts, auras, premium, and boosts
+### Premium and boosts
 
-Treat payments and entitlements as ledgers, not client booleans. A verified,
-idempotent provider event grants a product exactly once. Aura activation must
-allow one active aura per user. Boost exposure and results are append-only
-events with scheduled start/end and counters derived safely.
+Treat payments and entitlements as ledgers, not client booleans. Reuse the
+verified, idempotent provider-event contract from Gifts rather than creating a
+parallel payment path. Boost exposure and results are append-only events with
+scheduled start/end and counters derived safely.
 
 ### Moderation
 
@@ -316,5 +358,6 @@ ownership; a client-supplied address alone is not sufficient.
 8. Verify both Storage buckets and their public/private flags.
 9. Configure backups, point-in-time recovery, log retention, alerting, and a
    staging environment.
-10. Add provider-specific payment and moderation secrets only when those
-    modules are implemented.
+10. Add `TELEGRAM_PAYMENT_WEBHOOK_SECRET`, the exact Telegram webhook URL, and
+    `TON_PAYMENT_RECEIVER_ADDRESS`/`TONAPI_*` only when payment providers are
+    ready to be enabled.
