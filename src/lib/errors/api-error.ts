@@ -10,6 +10,10 @@ export type ApiErrorCode =
   | 'PROFILE_INCOMPLETE'
   | 'USER_BANNED'
   | 'USER_RESTRICTED'
+  | 'ALREADY_SWIPED'
+  | 'ALREADY_MATCHED'
+  | 'UNDO_NOT_AVAILABLE'
+  | 'INSUFFICIENT_SUPER_LIKES'
   | 'STORAGE_ERROR';
 
 export class ApiError extends Error {

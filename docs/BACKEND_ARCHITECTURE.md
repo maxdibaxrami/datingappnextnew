@@ -12,8 +12,8 @@ records.
 | Telegram auth and sessions | Implemented | Device/session management and abuse telemetry |
 | Profile onboarding | Implemented | Verification workflow and normalized catalogs |
 | Profile photo originals | Implemented | Moderation worker and public derivatives |
-| Discovery | Planned | Cursor search over safe public cards |
-| Swipes and matches | Planned | Atomic action/match RPCs |
+| Discovery | Implemented | Ranking experiments, travel mode, and public profile detail |
+| Swipes and matches | Implemented | Unmatch workflow, likes inbox, and product entitlements |
 | Daily chemistry | Planned | Daily candidate generation and quotas |
 | Date ideas | Planned | Marketplace browsing and request workflow |
 | Gifts and auras | Planned | Verified-payment fulfillment |
@@ -22,10 +22,10 @@ records.
 | Follows and social | Planned | Follow state and feed visibility |
 | TON and Telegram Stars | Planned | Provider verification and idempotent grants |
 
-Only authentication and onboarding are exposed by the current API. Future
-tables already present in the database are not automatically considered safe to
-use. Each module requires its own service, validation, guards, indexes, and
-tests before routes are enabled.
+Authentication, onboarding, discovery, swipes, undo, and active-match reads are
+exposed by the current API. Other tables already present in the database are
+not automatically considered safe to use. Each module requires its own service,
+validation, guards, indexes, and tests before routes are enabled.
 
 ## Trust boundaries
 
@@ -174,21 +174,51 @@ stable cursor and indexed filters. Nearby search must expose only city/country
 and a coarse geohash prefix. Exact coordinates belong in a private schema with
 strict retention and access controls.
 
-## Planned module contracts
+## Implemented dating loop
 
 ### Discovery
 
-Query only safe public cards. Exclude self, either-direction blocks, prior
-swipes, incomplete/hidden/inactive/banned users, and unsafe photos. Add filters
-incrementally: age, gender, country/city, coarse nearby, goals, languages, and
-interests. Use a stable cursor such as ranked score plus user UUID.
+GET /api/discovery queries only safe public cards. It excludes self,
+either-direction blocks, current prior swipes, active matches, and
+incomplete/hidden/inactive/banned/shadow-banned users. A primary photo must be
+public, confirmed, approved, and face-checked. Filters cover age, gender,
+country, case-insensitive city, coarse geohash prefix, goals, languages, and
+interests. Pages use an opaque keyset cursor over recency plus UUID and are
+capped at 50 records.
+
+Public geohashes are limited to five characters. Exact location must remain in
+a private location table when that module is introduced.
 
 ### Swipes and matches
 
-Implement an atomic RPC that validates visibility and blocks, writes one
-idempotent swipe action, detects a compatible reciprocal action, and inserts a
-canonical least(user_id), greatest(user_id) match. Define undo windows and
-whether pass/like history is immutable or superseded.
+POST /api/swipes accepts like, pass, super_like, and secret_crush plus a
+client-generated UUID idempotency key. The atomic RPC:
+
+- rechecks actor status, completion, bans, and swipe restrictions;
+- rechecks target visibility, safety, bans, restrictions, and both-direction
+  blocks;
+- serializes each unordered user pair with a transaction advisory lock;
+- records one current action per actor/target pair;
+- spends a super-like balance and appends its ledger entry atomically;
+- detects a current reciprocal positive action;
+- creates or reactivates one canonical least(UUID), greatest(UUID) match;
+- updates like and match counters only once.
+
+POST /api/swipes/undo preserves history by timestamping the original action and
+inserting a linked undo event. Only the globally latest current action can be
+undone, only within five minutes, and never after it formed an active match.
+Undo refunds an actually spent super-like in the same transaction.
+
+GET /api/matches returns active, unblocked matches with safe opponent media and
+an opaque matched-at/UUID cursor. A no_swipe restriction does not prevent a user
+from reading existing matches.
+
+The database RPCs are executable only by service_role. The browser supplies no
+actor user ID; the backend derives it from the verified cookie session. The
+application guard and database transaction both enforce account state so a ban
+or block racing with a request cannot bypass the final write check.
+
+## Planned module contracts
 
 ### Daily chemistry
 

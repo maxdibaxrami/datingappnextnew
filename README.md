@@ -3,7 +3,7 @@
 A Next.js Telegram Mini App with a trusted server backend built on Supabase Auth,
 Postgres, Storage, and row-level security.
 
-The first backend milestone is implemented:
+The first two backend milestones are implemented:
 
 - Telegram Mini App initData verification with replay expiry and constant-time
   signature comparison
@@ -13,11 +13,18 @@ The first backend milestone is implemented:
 - profile onboarding and completion APIs
 - private original profile-photo uploads through signed Storage URLs
 - photo confirmation, primary selection, reordering, and soft deletion
+- safe, filterable discovery with opaque cursor pagination
+- idempotent likes, passes, super-likes, and secret crushes
+- race-safe reciprocal matching with canonical user ordering
+- five-minute latest-swipe undo with immutable action history
+- cursor-paginated active match reads
 - database-backed rate limits and consistent API responses
 
-The production Supabase migration is
-supabase/migrations/20260714163611_backend_foundation_auth.sql. Do not reapply
-an already-recorded migration. Check migration history before deploying.
+Database migrations live in supabase/migrations. The foundation migration is
+already recorded in production. Apply
+20260714182456_discovery_swipes_matches.sql before deploying the discovery,
+swipe, and match routes, then regenerate src/types/database.generated.ts. Never
+reapply an already-recorded migration; check migration history first.
 
 ## Local setup
 
@@ -76,8 +83,11 @@ Implemented routes:
 - POST /api/profile/photos/:photoId/primary
 - DELETE /api/profile/photos/:photoId
 - POST /api/profile/photos/reorder
+- GET /api/discovery
+- POST /api/swipes
+- POST /api/swipes/undo
+- GET /api/matches
 
 See [docs/BACKEND_ARCHITECTURE.md](docs/BACKEND_ARCHITECTURE.md) for security
-boundaries, data ownership, deployment notes, and the roadmap for discovery,
-swipes, matches, daily chemistry, date ideas, monetization, moderation, social,
-and TON payments.
+boundaries, data ownership, deployment notes, and the roadmap for daily
+chemistry, date ideas, monetization, moderation, social, and TON payments.

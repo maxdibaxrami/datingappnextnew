@@ -25,7 +25,7 @@ export const updateProfileSchema = z.object({
   cityName: z.string().trim().min(1).max(120).nullable().optional(),
   cityId: z.uuid().nullable().optional(),
   publicGeohashPrefix: z.string().trim().toLowerCase()
-    .regex(/^[0-9bcdefghjkmnpqrstuvwxyz]{2,7}$/).nullable().optional(),
+    .regex(/^[0-9bcdefghjkmnpqrstuvwxyz]{2,5}$/).nullable().optional(),
   mood: trimmedNullable(80).optional(),
   intents: stringList(60, 10).optional(),
   languages: stringList(35, 10).optional(),
