@@ -456,6 +456,122 @@ export type Database = {
           },
         ]
       }
+      conversation_members: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_activity_at: string
+          last_read_at: string | null
+          last_read_message_id: string | null
+          last_read_sequence: number
+          notifications_muted_until: string | null
+          unread_count: number
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_activity_at?: string
+          last_read_at?: string | null
+          last_read_message_id?: string | null
+          last_read_sequence?: number
+          notifications_muted_until?: string | null
+          unread_count?: number
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_activity_at?: string
+          last_read_at?: string | null
+          last_read_message_id?: string | null
+          last_read_sequence?: number
+          notifications_muted_until?: string | null
+          unread_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_members_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_sequence: number
+          match_id: string
+          status: Database["public"]["Enums"]["conversation_status"]
+          updated_at: string
+          user_a_id: string
+          user_b_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_sequence?: number
+          match_id: string
+          status?: Database["public"]["Enums"]["conversation_status"]
+          updated_at?: string
+          user_a_id: string
+          user_b_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_sequence?: number
+          match_id?: string
+          status?: Database["public"]["Enums"]["conversation_status"]
+          updated_at?: string
+          user_a_id?: string
+          user_b_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_user_a_id_fkey"
+            columns: ["user_a_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_user_b_id_fkey"
+            columns: ["user_b_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       countries: {
         Row: {
           code: string
@@ -1163,6 +1279,73 @@ export type Database = {
           {
             foreignKeyName: "matches_user_b_id_fkey"
             columns: ["user_b_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string
+          client_message_id: string
+          conversation_id: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          message_type: Database["public"]["Enums"]["message_type"]
+          metadata: Json
+          reply_to_message_id: string | null
+          sender_user_id: string
+          sent_at: string
+          sequence: number
+        }
+        Insert: {
+          body: string
+          client_message_id: string
+          conversation_id: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          message_type?: Database["public"]["Enums"]["message_type"]
+          metadata?: Json
+          reply_to_message_id?: string | null
+          sender_user_id: string
+          sent_at?: string
+          sequence: number
+        }
+        Update: {
+          body?: string
+          client_message_id?: string
+          conversation_id?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          message_type?: Database["public"]["Enums"]["message_type"]
+          metadata?: Json
+          reply_to_message_id?: string | null
+          sender_user_id?: string
+          sent_at?: string
+          sequence?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_message_id_fkey"
+            columns: ["reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_user_id_fkey"
+            columns: ["sender_user_id"]
             isOneToOne: false
             referencedRelation: "app_users"
             referencedColumns: ["id"]
@@ -2530,6 +2713,59 @@ export type Database = {
         }
         Relationships: []
       }
+      user_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          expires_at: string | null
+          id: string
+          notification_type: Database["public"]["Enums"]["notification_type"]
+          payload: Json
+          read_at: string | null
+          seen_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          id?: string
+          notification_type: Database["public"]["Enums"]["notification_type"]
+          payload?: Json
+          read_at?: string | null
+          seen_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          id?: string
+          notification_type?: Database["public"]["Enums"]["notification_type"]
+          payload?: Json
+          read_at?: string | null
+          seen_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_premium_subscriptions: {
         Row: {
           auto_renew: boolean
@@ -3187,6 +3423,25 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_conversation_messages: {
+        Args: {
+          p_actor_user_id: string
+          p_conversation_id: string
+          p_cursor_message_id?: string
+          p_cursor_sent_at?: string
+          p_limit?: number
+        }
+        Returns: {
+          body: string
+          edited_at: string
+          message_id: string
+          message_type: Database["public"]["Enums"]["message_type"]
+          reply_to_message_id: string
+          sender_user_id: string
+          sent_at: string
+          sequence: number
+        }[]
+      }
       get_date_idea_cards: {
         Args: {
           p_actor_user_id: string
@@ -3467,6 +3722,34 @@ export type Database = {
           reason: string
         }[]
       }
+      get_user_conversations: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_activity_at?: string
+          p_cursor_conversation_id?: string
+          p_limit?: number
+        }
+        Returns: {
+          age_years: number
+          city_name: string
+          conversation_id: string
+          country_code: string
+          display_name: string
+          last_activity_at: string
+          last_message_at: string
+          last_message_id: string
+          last_message_preview: string
+          last_message_sender_user_id: string
+          match_id: string
+          notifications_muted_until: string
+          other_user_id: string
+          primary_photo_blur_hash: string
+          primary_photo_height: number
+          primary_photo_url: string
+          primary_photo_width: number
+          unread_count: number
+        }[]
+      }
       get_user_matches: {
         Args: {
           p_actor_user_id: string
@@ -3501,6 +3784,28 @@ export type Database = {
           relationship_goals: string[]
         }[]
       }
+      get_user_notifications: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_created_at?: string
+          p_cursor_notification_id?: string
+          p_limit?: number
+          p_unread_only?: boolean
+        }
+        Returns: {
+          body: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          expires_at: string
+          notification_id: string
+          notification_type: Database["public"]["Enums"]["notification_type"]
+          payload: Json
+          read_at: string
+          seen_at: string
+          title: string
+        }[]
+      }
       grant_verified_gift_payment: {
         Args: {
           p_amount_stars?: number
@@ -3522,6 +3827,27 @@ export type Database = {
           sent_gift_id: string
         }[]
       }
+      mark_all_user_notifications_read: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          marked_count: number
+          read_at: string
+        }[]
+      }
+      mark_conversation_read: {
+        Args: {
+          p_actor_user_id: string
+          p_conversation_id: string
+          p_through_message_id?: string
+        }
+        Returns: {
+          conversation_id: string
+          last_read_message_id: string
+          last_read_sequence: number
+          read_at: string
+          unread_count: number
+        }[]
+      }
       mark_daily_chemistry_candidate_viewed: {
         Args: { p_actor_user_id: string; p_candidate_id: string }
         Returns: {
@@ -3530,6 +3856,14 @@ export type Database = {
           card_remaining_candidates: number
           card_status: Database["public"]["Enums"]["daily_chemistry_card_status"]
           viewed_at: string
+        }[]
+      }
+      mark_user_notification_read: {
+        Args: { p_actor_user_id: string; p_notification_id: string }
+        Returns: {
+          already_read: boolean
+          notification_id: string
+          read_at: string
         }[]
       }
       provision_telegram_user: {
@@ -3614,6 +3948,38 @@ export type Database = {
         Returns: {
           payment_id: string
           payment_status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
+      send_conversation_message: {
+        Args: {
+          p_actor_user_id: string
+          p_body: string
+          p_client_message_id: string
+          p_conversation_id: string
+          p_reply_to_message_id?: string
+        }
+        Returns: {
+          already_created: boolean
+          body: string
+          conversation_id: string
+          message_id: string
+          message_type: Database["public"]["Enums"]["message_type"]
+          notification_id: string
+          reply_to_message_id: string
+          sender_user_id: string
+          sent_at: string
+          sequence: number
+        }[]
+      }
+      set_conversation_notification_settings: {
+        Args: {
+          p_actor_user_id: string
+          p_conversation_id: string
+          p_muted_until?: string
+        }
+        Returns: {
+          conversation_id: string
+          notifications_muted_until: string
         }[]
       }
       set_date_idea_bookmark: {
@@ -3722,6 +4088,7 @@ export type Database = {
         | "cancelled"
         | "expired"
         | "refunded"
+      conversation_status: "active" | "closed" | "blocked"
       daily_chemistry_candidate_status:
         | "pending"
         | "viewed"
@@ -3796,6 +4163,7 @@ export type Database = {
         | "boosted"
         | "date_idea"
       match_status: "active" | "unmatched" | "blocked" | "expired"
+      message_type: "text"
       moderation_queue_status:
         | "open"
         | "assigned"
@@ -3813,6 +4181,14 @@ export type Database = {
         | "gift"
         | "payment"
         | "report"
+      notification_type:
+        | "message"
+        | "match"
+        | "date_idea"
+        | "gift"
+        | "payment"
+        | "moderation"
+        | "video"
       online_state: "online" | "recently_online" | "offline" | "hidden"
       payment_product_type: "gift" | "boost" | "premium" | "theme"
       payment_provider: "telegram_stars" | "ton"
@@ -4104,6 +4480,7 @@ export const Constants = {
         "expired",
         "refunded",
       ],
+      conversation_status: ["active", "closed", "blocked"],
       daily_chemistry_candidate_status: [
         "pending",
         "viewed",
@@ -4181,6 +4558,7 @@ export const Constants = {
         "date_idea",
       ],
       match_status: ["active", "unmatched", "blocked", "expired"],
+      message_type: ["text"],
       moderation_queue_status: [
         "open",
         "assigned",
@@ -4199,6 +4577,15 @@ export const Constants = {
         "gift",
         "payment",
         "report",
+      ],
+      notification_type: [
+        "message",
+        "match",
+        "date_idea",
+        "gift",
+        "payment",
+        "moderation",
+        "video",
       ],
       online_state: ["online", "recently_online", "offline", "hidden"],
       payment_product_type: ["gift", "boost", "premium", "theme"],

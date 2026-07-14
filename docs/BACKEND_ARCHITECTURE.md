@@ -17,15 +17,17 @@ records.
 | Daily chemistry | Implemented and live | Preference learning and queued prewarming |
 | Date ideas | Implemented and live | Scheduled expiry and moderation workflow |
 | Gifts and auras | Implemented and live | Provider operations and wallet-ownership proof |
+| Messaging and notifications | Implemented and live | Private Realtime delivery and notification preferences |
 | Premium and boosts | Planned | Entitlements, ledgers, and exposure events |
 | Reports and moderation | Implemented and live | Moderator UI, verification evidence, and operational runbooks |
 | Follows and social | Planned | Follow state and feed visibility |
 | TON and Telegram Stars | Implemented and live | Provider operations and wallet-ownership proof |
 
 Authentication, onboarding, discovery, swipes, undo, active-match reads, Daily
-Chemistry, Date Ideas, Gifts/Auras/Payments, and Reports/Moderation are exposed
-by the current API code and backed by live migrations. Other tables already
-present in the database are not automatically considered safe to use.
+Chemistry, Date Ideas, Gifts/Auras/Payments, Reports/Moderation, and
+Messaging/Notifications are exposed by the current API code and backed by live
+migrations. Other tables already present in the database are not automatically
+considered safe to use.
 
 ## Trust boundaries
 
@@ -155,8 +157,8 @@ Run Supabase security and performance advisors after every DDL change.
 - Use the Supabase HTTPS Data API from serverless routes instead of opening a
   database connection per request.
 - Select explicit columns and cap every list.
-- Use cursor pagination for discovery, date ideas, feeds, reports, ledgers, and
-  event history; avoid high-offset pagination.
+- Use cursor pagination for discovery, date ideas, messages, notifications,
+  feeds, reports, ledgers, and event history; avoid high-offset pagination.
 - Keep middleware limited to cheap routing/session presence checks. Database
   gates belong in route services.
 - Make create/payment/event operations idempotent with provider IDs, invoice
@@ -251,8 +253,7 @@ current schema does not contain trustworthy dating preference fields.
 
 ### Date Ideas
 
-The Date Ideas backend is implemented in the feature branch and is intentionally
-not live until its migration is approved. `GET /api/date-ideas` gives completed
+The Date Ideas backend is live. `GET /api/date-ideas` gives completed
 users a cursor-paginated, safe marketplace card feed. It excludes the author,
 either-direction blocks, inactive/banned/restricted accounts, incomplete or
 hidden profiles, unsafe primary photos, expired or closed ideas, and ideas that
@@ -307,6 +308,38 @@ only the caller's auras; activating one via
 aura for that user. A partial unique index enforces this invariant even during
 concurrent calls.
 
+### Messaging and notifications
+
+Every active match automatically receives one canonical conversation and two
+membership rows. A match that is blocked, unmatched, or expires closes the
+conversation at the database level, and any current or future block makes the
+conversation unavailable to both users. The message and notification tables
+have RLS enabled and no browser table grants; all reads and writes use
+service-role-only RPCs behind session-verified Next.js routes.
+
+`GET /api/conversations` returns safe match context with a keyset cursor,
+unread count, mute state, and a bounded last-message preview. `GET` and `POST`
+to `/api/conversations/:conversationId/messages` page and send text messages.
+The send operation requires an active, unblocked match, validates both account
+states in the same transaction, assigns a per-conversation sequence number, and
+is idempotent on the caller's client message UUID. Retried sends return the
+original message without a second notification.
+
+`POST /api/conversations/:conversationId/read` stores a durable read position
+and recomputes only the residual unread count. `PATCH` to that conversation's
+`settings` route sets a bounded mute-until time. A sender's message increments
+the recipient's unread count and creates a generic in-app notification only
+when that conversation is not muted; message text is not copied into the
+notification body.
+
+`GET /api/notifications`, the individual read route, and the read-all route
+are a private notification inbox with cursor pagination. Match creation also
+creates a generic match notification for each user. Current delivery is via
+these protected APIs (polling is safe with the HttpOnly cookie session). Do not
+enable browser Realtime subscriptions until the client has a deliberately
+designed, short-lived authorization mechanism for Supabase private channels;
+the current session token is intentionally never exposed to browser JavaScript.
+
 ### Reports, blocks, and moderation
 
 `POST /api/blocks` and `DELETE /api/blocks/:blockedUserId` are available to
@@ -349,6 +382,14 @@ Treat payments and entitlements as ledgers, not client booleans. Reuse the
 verified, idempotent provider-event contract from Gifts rather than creating a
 parallel payment path. Boost exposure and results are append-only events with
 scheduled start/end and counters derived safely.
+
+### Messaging delivery
+
+When a short-lived, least-privilege Realtime authorization path is added, use
+private Broadcast channels named by conversation/user IDs and authorize each
+channel from the membership table. Do not publish raw `messages` table changes
+to browser clients; Broadcast avoids per-subscriber Postgres Changes overhead
+and keeps the message projection intentionally small.
 
 ### Moderation
 

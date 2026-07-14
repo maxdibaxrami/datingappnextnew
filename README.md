@@ -3,7 +3,7 @@
 A Next.js Telegram Mini App with a trusted server backend built on Supabase Auth,
 Postgres, Storage, and row-level security.
 
-The first six backend milestones are implemented and applied to the live
+The core backend milestones are implemented and applied to the live
 `dating_app` database:
 
 - Telegram Mini App initData verification with replay expiry and constant-time
@@ -31,14 +31,16 @@ The first six backend milestones are implemented and applied to the live
 - provider-neutral aura unlocks and one-active-aura activation
 - user block/unblock, reporting, a moderator queue, and auditable moderation
   decisions (restrictions, bans, profile/photo/post actions)
+- active-match conversations, idempotent text messages, unread counts, mute
+  settings, and private in-app notifications
 - database-backed rate limits and consistent API responses
 
 Database migrations live in supabase/migrations. Migrations through
-20260714222122_hardening_moderation_backend.sql are recorded in the live
+20260714230115_messaging_notifications_fk_indexes.sql are recorded in the live
 dating_app project, including Daily Chemistry, Date Ideas, Gifts/Auras/Payments,
-and moderation. Never reapply an already-recorded migration; check migration
-history before applying the next migration and regenerate database types after
-every live schema change.
+moderation, messaging, and notifications. Never reapply an already-recorded
+migration; check migration history before applying the next migration and
+regenerate database types after every live schema change.
 
 ## Local setup
 
@@ -119,6 +121,13 @@ Implemented routes:
 - GET /api/admin/moderation (moderator/admin only)
 - POST /api/admin/moderation/:moderationQueueId/assign
 - POST /api/admin/moderation/:moderationQueueId/decision
+- GET /api/conversations
+- GET|POST /api/conversations/:conversationId/messages
+- POST /api/conversations/:conversationId/read
+- PATCH /api/conversations/:conversationId/settings
+- GET /api/notifications
+- POST /api/notifications/:notificationId/read
+- POST /api/notifications/read-all
 
 ## Payment-provider setup
 
