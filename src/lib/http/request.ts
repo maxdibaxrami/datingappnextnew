@@ -41,6 +41,17 @@ async function readLimitedText(request: Request, maxBytes: number): Promise<stri
   return result + decoder.decode();
 }
 
+export async function parseExternalJsonBody(request: Request, maxBytes = DEFAULT_MAX_BODY_BYTES): Promise<unknown> {
+  try {
+    return JSON.parse(await readLimitedText(request, maxBytes));
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ValidationError('The request body must contain valid JSON', { cause: error });
+  }
+}
+
 export async function parseJsonBody<T>(
   request: NextRequest,
   schema: z.ZodType<T>,
@@ -52,15 +63,7 @@ export async function parseJsonBody<T>(
     throw new ValidationError('Content-Type must be application/json');
   }
 
-  let value: unknown;
-  try {
-    value = JSON.parse(await readLimitedText(request, maxBytes));
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ValidationError('The request body must contain valid JSON', { cause: error });
-  }
+  const value = await parseExternalJsonBody(request, maxBytes);
 
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
