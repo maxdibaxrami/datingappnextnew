@@ -3,7 +3,7 @@
 A Next.js Telegram Mini App with a trusted server backend built on Supabase Auth,
 Postgres, Storage, and row-level security.
 
-The first three backend milestones are implemented in the repository:
+The first four backend milestones are implemented in the repository:
 
 - Telegram Mini App initData verification with replay expiry and constant-time
   signature comparison
@@ -21,14 +21,17 @@ The first three backend milestones are implemented in the repository:
 - one stored UTC Daily Chemistry card with at most three explainable candidates
 - safe 30-day candidate deduplication and backend-only compatibility scoring
 - atomic candidate view, swipe, match, expiry, and undo state reconciliation
+- Date Idea create, safe marketplace browse, bookmark, join request, author
+  decision, and close flows with cursor pagination and idempotent requests
 - database-backed rate limits and consistent API responses
 
 Database migrations live in supabase/migrations. Migrations through
 20260714200110_fix_daily_chemistry_card_viewer_fk_index.sql are recorded in the
-live dating_app project, including Daily Chemistry. The generated database types
-match that live schema. Never reapply an already-recorded migration; check
-migration history before applying the next migration and regenerate database
-types after every live schema change.
+live dating_app project, including Daily Chemistry. The Date Ideas migration is
+present for review but is not live until it is explicitly approved and applied.
+Never reapply an already-recorded migration; check migration history before
+applying the next migration and regenerate database types after every live
+schema change.
 
 ## Local setup
 

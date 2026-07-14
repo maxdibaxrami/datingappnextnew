@@ -15,7 +15,7 @@ records.
 | Discovery | Implemented | Ranking experiments, travel mode, and public profile detail |
 | Swipes and matches | Implemented | Unmatch workflow, likes inbox, and product entitlements |
 | Daily chemistry | Implemented and live | Preference learning and queued prewarming |
-| Date ideas | Planned | Marketplace browsing and request workflow |
+| Date ideas | Implemented locally, pending live approval | Marketplace browsing and request workflow |
 | Gifts and auras | Planned | Verified-payment fulfillment |
 | Premium and boosts | Planned | Entitlements, ledgers, and exposure events |
 | Reports and moderation | Planned | Queue, evidence, restrictions, audit trail |
@@ -24,9 +24,10 @@ records.
 
 Authentication, onboarding, discovery, swipes, undo, active-match reads, and
 Daily Chemistry are exposed by the current API code and backed by live
-migrations. Other tables already present in the database are not automatically
-considered safe to use. Each module requires its own service, validation,
-guards, indexes, and tests before routes are enabled.
+migrations. Date Ideas has its service, routes, migration, guards, indexes, and
+tests in the feature branch, but is not live until the migration is approved.
+Other tables already present in the database are not automatically considered
+safe to use.
 
 ## Trust boundaries
 
@@ -249,13 +250,28 @@ the same versioned generation contract. Persisted age/gender/distance
 preferences should be added before personalized preference filtering; the
 current schema does not contain trustworthy dating preference fields.
 
+### Date Ideas
+
+The Date Ideas backend is implemented in the feature branch and is intentionally
+not live until its migration is approved. `GET /api/date-ideas` gives completed
+users a cursor-paginated, safe marketplace card feed. It excludes the author,
+either-direction blocks, inactive/banned/restricted accounts, incomplete or
+hidden profiles, unsafe primary photos, expired or closed ideas, and ideas that
+do not satisfy the creator's audience and visibility rules.
+
+`POST /api/date-ideas` creates an open idea using only the author's stored
+coarse location. The client cannot supply exact location, premium state, or
+verification state. Bookmark create/delete, idempotent join requests, author
+request listing, accept/reject, and close operations each run through a
+server-only security-definer RPC. A per-idea advisory lock makes competing
+requests, decisions, expiry, and close updates atomic.
+
 ## Planned module contracts
 
 ### Date ideas
 
-Use cursor browsing and enforce creator ownership, future expiry, open status,
-filter compatibility, blocks, and no self-request. Accept/reject must be atomic
-and idempotent. Add scheduled expiry and moderation.
+Add scheduled expiry and moderation workflows after the core marketplace is
+approved and live.
 
 ### Gifts, auras, premium, and boosts
 

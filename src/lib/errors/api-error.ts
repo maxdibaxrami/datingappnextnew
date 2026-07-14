@@ -15,6 +15,9 @@ export type ApiErrorCode =
   | 'DAILY_CHEMISTRY_ACTION_UNAVAILABLE'
   | 'UNDO_NOT_AVAILABLE'
   | 'INSUFFICIENT_SUPER_LIKES'
+  | 'DATE_IDEA_EXPIRED'
+  | 'DATE_IDEA_FULL'
+  | 'ALREADY_REQUESTED_DATE_IDEA'
   | 'STORAGE_ERROR';
 
 export class ApiError extends Error {
