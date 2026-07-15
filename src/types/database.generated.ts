@@ -3154,6 +3154,78 @@ export type Database = {
           },
         ]
       }
+      video_queue_entries: {
+        Row: {
+          cancelled_at: string | null
+          city_name: string
+          country_code: string
+          created_at: string
+          expires_at: string
+          geohash_prefix: string | null
+          id: string
+          interests: string[]
+          joined_at: string
+          languages: string[]
+          matched_at: string | null
+          matched_session_id: string | null
+          metadata: Json
+          mode: Database["public"]["Enums"]["video_mode"]
+          status: Database["public"]["Enums"]["video_queue_status"]
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          city_name: string
+          country_code: string
+          created_at?: string
+          expires_at?: string
+          geohash_prefix?: string | null
+          id?: string
+          interests?: string[]
+          joined_at?: string
+          languages?: string[]
+          matched_at?: string | null
+          matched_session_id?: string | null
+          metadata?: Json
+          mode: Database["public"]["Enums"]["video_mode"]
+          status?: Database["public"]["Enums"]["video_queue_status"]
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          city_name?: string
+          country_code?: string
+          created_at?: string
+          expires_at?: string
+          geohash_prefix?: string | null
+          id?: string
+          interests?: string[]
+          joined_at?: string
+          languages?: string[]
+          matched_at?: string | null
+          matched_session_id?: string | null
+          metadata?: Json
+          mode?: Database["public"]["Enums"]["video_mode"]
+          status?: Database["public"]["Enums"]["video_queue_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_queue_entries_matched_session_id_fkey"
+            columns: ["matched_session_id"]
+            isOneToOne: false
+            referencedRelation: "video_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_queue_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_report_events: {
         Row: {
           actor_user_id: string | null
@@ -3229,17 +3301,171 @@ export type Database = {
           },
         ]
       }
+      video_session_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          video_session_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          video_session_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          video_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_session_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_session_events_video_session_id_fkey"
+            columns: ["video_session_id"]
+            isOneToOne: false
+            referencedRelation: "video_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_session_participants: {
+        Row: {
+          joined_at: string | null
+          last_seen_at: string
+          left_at: string | null
+          matched_at: string
+          position: number
+          ready_at: string | null
+          state: Database["public"]["Enums"]["video_participant_state"]
+          user_id: string
+          video_session_id: string
+        }
+        Insert: {
+          joined_at?: string | null
+          last_seen_at?: string
+          left_at?: string | null
+          matched_at?: string
+          position: number
+          ready_at?: string | null
+          state?: Database["public"]["Enums"]["video_participant_state"]
+          user_id: string
+          video_session_id: string
+        }
+        Update: {
+          joined_at?: string | null
+          last_seen_at?: string
+          left_at?: string | null
+          matched_at?: string
+          position?: number
+          ready_at?: string | null
+          state?: Database["public"]["Enums"]["video_participant_state"]
+          user_id?: string
+          video_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_session_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_session_participants_video_session_id_fkey"
+            columns: ["video_session_id"]
+            isOneToOne: false
+            referencedRelation: "video_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_session_signals: {
+        Row: {
+          client_signal_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          payload: Json
+          recipient_user_id: string
+          sender_user_id: string
+          signal_type: Database["public"]["Enums"]["video_signal_type"]
+          video_session_id: string
+        }
+        Insert: {
+          client_signal_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload: Json
+          recipient_user_id: string
+          sender_user_id: string
+          signal_type: Database["public"]["Enums"]["video_signal_type"]
+          video_session_id: string
+        }
+        Update: {
+          client_signal_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          recipient_user_id?: string
+          sender_user_id?: string
+          signal_type?: Database["public"]["Enums"]["video_signal_type"]
+          video_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_session_signals_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_session_signals_sender_user_id_fkey"
+            columns: ["sender_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_session_signals_video_session_id_fkey"
+            columns: ["video_session_id"]
+            isOneToOne: false
+            referencedRelation: "video_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_sessions: {
         Row: {
           algorithm_version: string | null
           city_name: string | null
           connected_at: string | null
+          connection_expires_at: string | null
           country_code: string | null
           created_at: string
           end_reason: string | null
           ended_at: string | null
+          ended_by_user_id: string | null
           geohash_prefix: string | null
           id: string
+          last_activity_at: string
           match_scope: string | null
           mode: Database["public"]["Enums"]["video_mode"]
           status: Database["public"]["Enums"]["video_session_status"]
@@ -3248,12 +3474,15 @@ export type Database = {
           algorithm_version?: string | null
           city_name?: string | null
           connected_at?: string | null
+          connection_expires_at?: string | null
           country_code?: string | null
           created_at?: string
           end_reason?: string | null
           ended_at?: string | null
+          ended_by_user_id?: string | null
           geohash_prefix?: string | null
           id?: string
+          last_activity_at?: string
           match_scope?: string | null
           mode?: Database["public"]["Enums"]["video_mode"]
           status?: Database["public"]["Enums"]["video_session_status"]
@@ -3262,17 +3491,28 @@ export type Database = {
           algorithm_version?: string | null
           city_name?: string | null
           connected_at?: string | null
+          connection_expires_at?: string | null
           country_code?: string | null
           created_at?: string
           end_reason?: string | null
           ended_at?: string | null
+          ended_by_user_id?: string | null
           geohash_prefix?: string | null
           id?: string
+          last_activity_at?: string
           match_scope?: string | null
           mode?: Database["public"]["Enums"]["video_mode"]
           status?: Database["public"]["Enums"]["video_session_status"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "video_sessions_ended_by_user_id_fkey"
+            columns: ["ended_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -3335,6 +3575,13 @@ export type Database = {
           assigned_to_user_id: string
           moderation_queue_id: string
           status: Database["public"]["Enums"]["moderation_queue_status"]
+        }[]
+      }
+      cancel_video_queue: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          cancelled: boolean
+          queue_entry_id: string
         }[]
       }
       claim_premium_daily_super_likes: {
@@ -3532,6 +3779,19 @@ export type Database = {
           queue_status: Database["public"]["Enums"]["moderation_queue_status"]
           report_id: string
           report_status: Database["public"]["Enums"]["report_status"]
+        }[]
+      }
+      end_video_session: {
+        Args: {
+          p_actor_user_id: string
+          p_end_reason: string
+          p_video_session_id: string
+        }
+        Returns: {
+          already_ended: boolean
+          ended_at: string
+          video_session_id: string
+          video_session_status: Database["public"]["Enums"]["video_session_status"]
         }[]
       }
       find_user_id_by_telegram_id: {
@@ -4021,6 +4281,53 @@ export type Database = {
           title: string
         }[]
       }
+      get_video_queue_state: {
+        Args: { p_actor_user_id: string }
+        Returns: {
+          expires_at: string
+          matched_at: string
+          queue_entry_id: string
+          queue_status: Database["public"]["Enums"]["video_queue_status"]
+          video_session_id: string
+          video_session_status: Database["public"]["Enums"]["video_session_status"]
+        }[]
+      }
+      get_video_session_signals: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_created_at?: string
+          p_cursor_signal_id?: string
+          p_limit?: number
+          p_video_session_id: string
+        }
+        Returns: {
+          created_at: string
+          payload: Json
+          sender_user_id: string
+          signal_id: string
+          signal_type: Database["public"]["Enums"]["video_signal_type"]
+        }[]
+      }
+      get_video_session_state: {
+        Args: { p_actor_user_id: string; p_video_session_id: string }
+        Returns: {
+          connected_at: string
+          connection_expires_at: string
+          is_initiator: boolean
+          mode: Database["public"]["Enums"]["video_mode"]
+          other_age_years: number
+          other_city_name: string
+          other_country_code: string
+          other_display_name: string
+          other_primary_photo_blur_hash: string
+          other_primary_photo_url: string
+          other_state: Database["public"]["Enums"]["video_participant_state"]
+          other_user_id: string
+          self_state: Database["public"]["Enums"]["video_participant_state"]
+          video_session_id: string
+          video_session_status: Database["public"]["Enums"]["video_session_status"]
+        }[]
+      }
       grant_verified_boost_payment: {
         Args: {
           p_amount_stars?: number
@@ -4085,6 +4392,28 @@ export type Database = {
           subscription_id: string
         }[]
       }
+      heartbeat_video_session: {
+        Args: { p_actor_user_id: string; p_video_session_id: string }
+        Returns: {
+          last_seen_at: string
+          video_session_id: string
+          video_session_status: Database["public"]["Enums"]["video_session_status"]
+        }[]
+      }
+      join_video_queue: {
+        Args: {
+          p_actor_user_id: string
+          p_mode: Database["public"]["Enums"]["video_mode"]
+        }
+        Returns: {
+          expires_at: string
+          matched: boolean
+          queue_entry_id: string
+          queue_status: Database["public"]["Enums"]["video_queue_status"]
+          video_session_id: string
+          video_session_status: Database["public"]["Enums"]["video_session_status"]
+        }[]
+      }
       mark_all_user_notifications_read: {
         Args: { p_actor_user_id: string }
         Returns: {
@@ -4122,6 +4451,27 @@ export type Database = {
           already_read: boolean
           notification_id: string
           read_at: string
+        }[]
+      }
+      mark_video_session_connected: {
+        Args: { p_actor_user_id: string; p_video_session_id: string }
+        Returns: {
+          connected_at: string
+          other_state: Database["public"]["Enums"]["video_participant_state"]
+          self_state: Database["public"]["Enums"]["video_participant_state"]
+          video_session_id: string
+          video_session_status: Database["public"]["Enums"]["video_session_status"]
+        }[]
+      }
+      mark_video_session_ready: {
+        Args: { p_actor_user_id: string; p_video_session_id: string }
+        Returns: {
+          connection_expires_at: string
+          is_initiator: boolean
+          other_state: Database["public"]["Enums"]["video_participant_state"]
+          self_state: Database["public"]["Enums"]["video_participant_state"]
+          video_session_id: string
+          video_session_status: Database["public"]["Enums"]["video_session_status"]
         }[]
       }
       pause_own_boost: {
@@ -4273,6 +4623,20 @@ export type Database = {
           sender_user_id: string
           sent_at: string
           sequence: number
+        }[]
+      }
+      send_video_session_signal: {
+        Args: {
+          p_actor_user_id: string
+          p_client_signal_id: string
+          p_payload: Json
+          p_signal_type: Database["public"]["Enums"]["video_signal_type"]
+          p_video_session_id: string
+        }
+        Returns: {
+          already_created: boolean
+          created_at: string
+          signal_id: string
         }[]
       }
       set_conversation_notification_settings: {
@@ -4606,12 +4970,21 @@ export type Database = {
         | "nearby"
         | "same_language"
         | "same_interest"
+      video_participant_state:
+        | "matched"
+        | "ready"
+        | "joined"
+        | "left"
+        | "disconnected"
+        | "blocked"
+      video_queue_status: "waiting" | "matched" | "cancelled" | "expired"
       video_session_status:
         | "created"
         | "connecting"
         | "connected"
         | "ended"
         | "failed"
+      video_signal_type: "offer" | "answer" | "ice_candidate" | "hangup"
       wallet_network: "ton_mainnet" | "ton_testnet"
       wallet_status: "connected" | "verified" | "disconnected" | "blocked"
     }
@@ -5012,6 +5385,15 @@ export const Constants = {
         "same_language",
         "same_interest",
       ],
+      video_participant_state: [
+        "matched",
+        "ready",
+        "joined",
+        "left",
+        "disconnected",
+        "blocked",
+      ],
+      video_queue_status: ["waiting", "matched", "cancelled", "expired"],
       video_session_status: [
         "created",
         "connecting",
@@ -5019,6 +5401,7 @@ export const Constants = {
         "ended",
         "failed",
       ],
+      video_signal_type: ["offer", "answer", "ice_candidate", "hangup"],
       wallet_network: ["ton_mainnet", "ton_testnet"],
       wallet_status: ["connected", "verified", "disconnected", "blocked"],
     },

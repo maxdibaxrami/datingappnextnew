@@ -85,6 +85,13 @@ export async function requireDatingAccount(userId: string): Promise<AccountGate>
   });
 }
 
+export async function requireVideoAccount(userId: string): Promise<AccountGate> {
+  return requireUsableAccount(userId, {
+    completedProfile: true,
+    denyRestrictions: ['no_video'],
+  });
+}
+
 export async function requireModerator(userId: string): Promise<AccountGate> {
   const gate = await requireUsableAccount(userId);
   if (gate.role !== 'admin' && gate.role !== 'moderator') {

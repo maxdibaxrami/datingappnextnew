@@ -19,6 +19,7 @@ records.
 | Gifts and auras | Implemented and live | Provider operations and wallet-ownership proof |
 | Messaging and notifications | Implemented and live | Private Realtime delivery and notification preferences |
 | Premium and boosts | Implemented and live | Provider operations, expiry worker, and product analytics |
+| Random video chat | Implemented and live | Client WebRTC integration, TURN provider, and session cleanup worker |
 | Reports and moderation | Implemented and live | Moderator UI, verification evidence, and operational runbooks |
 | Follows and social | Planned | Follow state and feed visibility |
 | TON and Telegram Stars | Implemented and live | Provider operations and wallet-ownership proof |
@@ -26,7 +27,8 @@ records.
 Authentication, onboarding, discovery, swipes, undo, active-match reads, Daily
 Chemistry, Date Ideas, Gifts/Auras/Payments, Reports/Moderation,
 Messaging/Notifications, and Premium/Boosts are exposed by the current API code
-and backed by live migrations. Other tables already present in the database are
+and backed by live migrations. Random Video Chat now has a server-side pairing
+and signaling backend as well. Other tables already present in the database are
 not automatically considered safe to use.
 
 ## Trust boundaries
@@ -372,6 +374,34 @@ worker should expire boosts and start queued boosts promptly even when a user is
 not being discovered, while the current bounded metric path refreshes due
 returned profiles transactionally.
 
+### Random video chat
+
+The random video backend is live but deliberately separates safe matching from
+media transport. `POST /api/video/queue` creates or reuses one 90-second queue
+entry using only the caller's stored country, city, coarse three-character
+geohash, languages, and interests. It can pair only a counterpart whose own
+selected mode also accepts the caller. The atomic queue RPC uses row locks with
+`SKIP LOCKED`, excludes self, blocks in either direction, banned/restricted
+accounts, unsafe or hidden profiles, already-active video participants, and
+the same pair from the preceding 12 hours.
+
+Matching creates one private `video_sessions` row and exactly two participant
+rows. `GET /api/video/queue` returns only the caller's queue/session state;
+`GET /api/video/sessions/:videoSessionId` returns only the other participant's
+safe profile projection (name, age, country/city, approved primary photo) and
+never exposes exact location, queue metadata, or the other user's signaling
+history. A new block ends any active session between the pair immediately via a
+database trigger.
+
+The `ready`, `connected`, `heartbeat`, `end`, and `signals` routes provide a
+provider-neutral WebRTC lifecycle. Signaling is a bounded, idempotent offer,
+answer, ICE-candidate, or hangup relay between the two verified participants;
+the browser has no direct database access or Supabase Realtime credential. It
+is designed for polling from the HttpOnly-cookie client. The backend records
+only session metadata and short-lived signaling payloads, not media. A client must supply a production TURN configuration before reliable
+mobile/network traversal can be promised; a future LiveKit/Daily adapter can
+replace the transport without changing pairing, safety, or reporting contracts.
+
 ### Reports, blocks, and moderation
 
 `POST /api/blocks` and `DELETE /api/blocks/:blockedUserId` are available to
@@ -383,9 +413,10 @@ idea, and gift workflow already checks both block directions.
 `POST /api/reports` accepts user/profile, profile-photo, post, or video-session
 reports. The client sends only a target ID and a bounded reason/details field;
 the database derives the content owner for photo and post reports. Video reports
-must identify the other participant explicitly until the video-session
-participant model is added. Each report atomically creates one moderation-queue
-case and records a video-report event where appropriate.
+must identify the other participant and the database now proves both users were
+participants in that exact session before creating evidence. Each report
+atomically creates one moderation-queue case and records a video-report event
+where appropriate.
 
 Moderators and admins receive a cursor-paginated queue through
 `GET /api/admin/moderation`. They can assign a case and make an auditable
@@ -415,6 +446,15 @@ guarantees, reconcile provider refunds through a provider-specific adapter, and
 instrument funnel/retention metrics without copying payment data into client
 analytics. Treat all entitlement changes as verified ledger events, never as a
 client-side flag.
+
+### Random video operations
+
+Provision a TURN service with short-lived credentials before launch, add a
+scheduled cleanup worker for expired queue entries/signaling rows, and monitor
+connection success, skips, blocks, reports, and median pairing time by coarse
+mode. Do not store recordings by default; any future recording feature needs
+explicit consent, regional retention controls, access review, and a moderation
+evidence policy.
 
 ### Messaging delivery
 

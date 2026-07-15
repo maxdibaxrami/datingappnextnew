@@ -37,14 +37,17 @@ The core backend milestones are implemented and applied to the live
   subscription entitlement, feature limits, and daily premium super-like claims
 - paid and premium-benefit boosts with sequential scheduling, pause/resume,
   exposure metrics, and private discovery priority
+- random video queue pairing with reciprocal location/interest scope matching,
+  protected WebRTC signaling, block-triggered termination, and participant-proof
+  moderation reports
 - database-backed rate limits and consistent API responses
 
 Database migrations live in supabase/migrations. The live `dating_app` project
-records the `premium_boost_backend`, `boost_discovery_integration`, and
-premium index follow-up migrations in addition to the earlier Daily Chemistry,
-Date Ideas, Gifts/Auras/Payments, moderation, and messaging work. Never
-reapply an already-recorded migration; check migration history before applying
-the next migration and regenerate database types after every live schema change.
+records the `premium_boost_backend`, premium index follow-ups, and
+`random_video_chat_backend` in addition to the earlier Daily Chemistry, Date
+Ideas, Gifts/Auras/Payments, moderation, and messaging work. Never reapply an
+already-recorded migration; check migration history before applying the next
+migration and regenerate database types after every live schema change.
 
 ## Local setup
 
@@ -143,6 +146,13 @@ Implemented routes:
 - POST /api/boosts/premium
 - POST /api/boosts/:boostId/pause
 - POST /api/boosts/:boostId/resume
+- GET|POST|DELETE /api/video/queue
+- GET /api/video/sessions/:videoSessionId
+- POST /api/video/sessions/:videoSessionId/ready
+- POST /api/video/sessions/:videoSessionId/connected
+- POST /api/video/sessions/:videoSessionId/heartbeat
+- POST /api/video/sessions/:videoSessionId/end
+- GET|POST /api/video/sessions/:videoSessionId/signals
 
 ## Payment-provider setup
 
@@ -159,6 +169,15 @@ The server independently checks the transaction hash, destination, amount, and
 payload before delivering the gift; it never trusts a client-supplied network.
 Wallet-ownership proof can be added to the existing TON Connect screen as a
 later hardening step; it is not trusted from the browser today.
+
+## Random video transport
+
+The video backend pairs eligible completed profiles and relays bounded WebRTC
+signaling payloads through authenticated APIs. It does not persist audio or
+video. The client should use the queue/session/ready/connected/signal lifecycle
+and immediately call the end route when a peer connection closes. A TURN
+provider is required before relying on peer-to-peer WebRTC across restrictive
+mobile and carrier networks; public STUN alone is not a production guarantee.
 
 See [docs/BACKEND_ARCHITECTURE.md](docs/BACKEND_ARCHITECTURE.md) for security
 boundaries, data ownership, deployment notes, and the roadmap for daily
