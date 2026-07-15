@@ -21,15 +21,14 @@ records.
 | Premium and boosts | Implemented and live | Provider operations, expiry worker, and product analytics |
 | Random video chat | Implemented and live | Client WebRTC integration, TURN provider, and session cleanup worker |
 | Reports and moderation | Implemented and live | Moderator UI, verification evidence, and operational runbooks |
-| Follows and social | Planned | Follow state and feed visibility |
+| Follows and social | Implemented and live | Media, comments, reposts, polls, and ranking |
 | TON and Telegram Stars | Implemented and live | Provider operations and wallet-ownership proof |
 
 Authentication, onboarding, discovery, swipes, undo, active-match reads, Daily
 Chemistry, Date Ideas, Gifts/Auras/Payments, Reports/Moderation,
-Messaging/Notifications, and Premium/Boosts are exposed by the current API code
-and backed by live migrations. Random Video Chat now has a server-side pairing
-and signaling backend as well. Other tables already present in the database are
-not automatically considered safe to use.
+Messaging/Notifications, Premium/Boosts, Random Video Chat, and Follows/Social
+are exposed by the current API code and backed by live migrations. Other tables
+already present in the database are not automatically considered safe to use.
 
 ## Trust boundaries
 
@@ -402,6 +401,39 @@ only session metadata and short-lived signaling payloads, not media. A client mu
 mobile/network traversal can be promised; a future LiveKit/Daily adapter can
 replace the transport without changing pairing, safety, or reporting contracts.
 
+### Follows and social feed
+
+Users can opt into private follow approval with `follow_approval_required`,
+updated through their existing profile route. `POST /api/follows` creates either
+an accepted follow or a requested follow; `GET /api/follow-requests` lets the
+owner inspect pending requests and the decision route accepts or rejects one.
+`GET /api/follows?direction=following|followers` is cursor-paginated and shows
+only safe public profile projections. The `follows` table records requested,
+accepted, muted, and rejected states, while database triggers keep follower,
+following, and post counters synchronized.
+
+Follow, post, and post-like tables use RLS with no browser grants. All access
+runs through service-role-only RPCs after the Next.js route derives the actor
+from the verified cookie session. A new block deletes follows in both directions
+immediately, and every follow, feed, and like operation independently checks
+blocks, active account state, bans, restrictions, discoverability, and safe
+profile status to cover races.
+
+`POST /api/posts` is an idempotent safe-text surface. The client must provide a
+UUID `clientPostId`; concurrent retries converge on one post. The server derives
+country, city, and coarse geohash from the author's stored profile rather than
+accepting location from the browser. Current post types are text, question,
+confession, and local shout; media, polls, replies, and reposts are deliberately
+not exposed until their moderation and storage contracts exist.
+
+`GET /api/feed?scope=following|discover` returns a keyset-paginated safe feed.
+Visibility supports public/global, followers, country, city, and nearby rules
+without returning exact location. Muting does not silently remove a follow or
+corrupt its counters, but it hides that author from both feed scopes and prevents
+new likes from the muting user. `DELETE /api/posts/:postId` soft-deletes an own
+post, and post likes use a per-pair advisory lock to keep the count accurate
+under concurrent retry traffic.
+
 ### Reports, blocks, and moderation
 
 `POST /api/blocks` and `DELETE /api/blocks/:blockedUserId` are available to
@@ -471,11 +503,13 @@ actions require role guards, reason codes, before/after metadata, and an audit
 record. Blocking overrides follows, discovery, date ideas, swipes, gifts,
 matches where policy requires, and profile interaction.
 
-### Follows
+### Social media and ranking
 
-Model requested/accepted/muted/rejected transitions explicitly. Followers-only
-visibility must require an accepted relationship. Blocking invalidates access
-regardless of follow state.
+Add attachment upload/derivative processing, text/media moderation queues,
+comments, replies, reposts, polls, notification fan-out, and feed ranking only
+after each has bounded payloads, private storage/RLS policies, reporting, and
+abuse controls. Keep the current feed projection coarse-location-only and avoid
+adding exact coordinates or direct browser table access.
 
 ### Telegram Stars and TON
 

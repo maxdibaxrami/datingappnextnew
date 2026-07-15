@@ -7,7 +7,7 @@ import { type Database } from '@/types/database.generated';
 
 import { type UpdateProfileInput } from './schemas';
 
-const PROFILE_COLUMNS = 'user_id,display_name,age_years,gender,pronouns,headline,bio,about_me,looking_for_text,personality_summary,fun_fact,first_date_idea,country_code,city_name,city_id,public_geohash_prefix,mood,intents,languages,relationship_goals,interests,visibility,discoverable,profile_completed_at,created_at,updated_at' as const;
+const PROFILE_COLUMNS = 'user_id,display_name,age_years,gender,pronouns,headline,bio,about_me,looking_for_text,personality_summary,fun_fact,first_date_idea,country_code,city_name,city_id,public_geohash_prefix,mood,intents,languages,relationship_goals,interests,visibility,discoverable,follow_approval_required,profile_completed_at,created_at,updated_at' as const;
 
 const PHOTO_COLUMNS = 'id,public_url,blur_hash,width,height,sort_order,is_primary,is_private,face_check_status,moderation_status,upload_status,confirmed_at,created_at' as const;
 
@@ -39,6 +39,7 @@ type OwnProfileRow = Pick<
   | 'interests'
   | 'visibility'
   | 'discoverable'
+  | 'follow_approval_required'
   | 'profile_completed_at'
   | 'created_at'
   | 'updated_at'
@@ -85,6 +86,7 @@ function mapProfile(profile: OwnProfileRow) {
     interests: profile.interests,
     visibility: profile.visibility,
     discoverable: profile.discoverable,
+    followApprovalRequired: profile.follow_approval_required,
     profileCompletedAt: profile.profile_completed_at,
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
@@ -158,6 +160,7 @@ function toDatabaseUpdate(input: UpdateProfileInput): ProfileUpdate {
   if ('interests' in input) update.interests = input.interests;
   if ('visibility' in input) update.visibility = input.visibility;
   if ('discoverable' in input) update.discoverable = input.discoverable;
+  if ('followApprovalRequired' in input) update.follow_approval_required = input.followApprovalRequired;
   update.last_active_at = new Date().toISOString();
   return update;
 }

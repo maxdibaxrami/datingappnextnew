@@ -33,6 +33,7 @@ export const updateProfileSchema = z.object({
   interests: stringList(60, 30).optional(),
   visibility: z.enum(['public', 'hidden', 'matches_only', 'paused']).optional(),
   discoverable: z.boolean().optional(),
+  followApprovalRequired: z.boolean().optional(),
 }).strict().refine((value) => Object.keys(value).length > 0, {
   message: 'At least one profile field is required',
 });

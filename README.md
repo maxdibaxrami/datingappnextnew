@@ -40,14 +40,19 @@ The core backend milestones are implemented and applied to the live
 - random video queue pairing with reciprocal location/interest scope matching,
   protected WebRTC signaling, block-triggered termination, and participant-proof
   moderation reports
+- requested/accepted/muted/rejected follows with approval controls, cursor
+  pagination, atomic profile counters, and block-triggered relationship removal
+- server-only social feeds, idempotent safe-text posts, post likes, coarse
+  visibility rules, and feed-safe profile projections
 - database-backed rate limits and consistent API responses
 
 Database migrations live in supabase/migrations. The live `dating_app` project
-records the `premium_boost_backend`, premium index follow-ups, and
-`random_video_chat_backend` in addition to the earlier Daily Chemistry, Date
-Ideas, Gifts/Auras/Payments, moderation, and messaging work. Never reapply an
-already-recorded migration; check migration history before applying the next
-migration and regenerate database types after every live schema change.
+records the `premium_boost_backend`, `random_video_chat_backend`, and
+`social_feed_backend` migrations (including their safety/index follow-ups) in
+addition to the earlier Daily Chemistry, Date Ideas, Gifts/Auras/Payments,
+moderation, and messaging work. Never reapply an already-recorded migration;
+check migration history before applying the next migration and regenerate
+database types after every live schema change.
 
 ## Local setup
 
@@ -153,6 +158,15 @@ Implemented routes:
 - POST /api/video/sessions/:videoSessionId/heartbeat
 - POST /api/video/sessions/:videoSessionId/end
 - GET|POST /api/video/sessions/:videoSessionId/signals
+- GET|POST /api/follows
+- DELETE /api/follows/:targetUserId
+- POST /api/follows/:targetUserId/mute
+- GET /api/follow-requests
+- POST /api/follow-requests/:followerUserId/decision
+- GET /api/feed
+- POST /api/posts
+- DELETE /api/posts/:postId
+- POST|DELETE /api/posts/:postId/like
 
 ## Payment-provider setup
 
@@ -178,6 +192,21 @@ video. The client should use the queue/session/ready/connected/signal lifecycle
 and immediately call the end route when a peer connection closes. A TURN
 provider is required before relying on peer-to-peer WebRTC across restrictive
 mobile and carrier networks; public STUN alone is not a production guarantee.
+
+## Social feed
+
+Users can enable follow approval through `PATCH /api/profile/me` with
+`followApprovalRequired`. Follows and social posts are server-owned: the
+browser cannot read or write `follows`, `posts`, or `post_likes` directly.
+`POST /api/posts` requires a client-generated UUID so a retry returns the
+original post rather than duplicating it. The current post surface is safe text
+only; attachments, replies, reposts, polls, and a media-processing pipeline
+remain future work.
+
+Feed visibility uses only stored country/city/coarse geohash data. Blocks erase
+both directional follows and prevent feed/profile interactions. Muting keeps
+the relationship record for counters and audience semantics while hiding that
+author's posts and preventing likes from the muting user.
 
 See [docs/BACKEND_ARCHITECTURE.md](docs/BACKEND_ARCHITECTURE.md) for security
 boundaries, data ownership, deployment notes, and the roadmap for daily

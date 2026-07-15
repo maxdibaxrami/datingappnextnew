@@ -1647,6 +1647,39 @@ export type Database = {
           },
         ]
       }
+      post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_moderation_events: {
         Row: {
           actor_user_id: string | null
@@ -1726,6 +1759,7 @@ export type Database = {
           author_user_id: string
           body: string
           city_name: string | null
+          client_post_id: string | null
           country_code: string | null
           created_at: string
           deleted_at: string | null
@@ -1745,6 +1779,7 @@ export type Database = {
           author_user_id: string
           body: string
           city_name?: string | null
+          client_post_id?: string | null
           country_code?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -1764,6 +1799,7 @@ export type Database = {
           author_user_id?: string
           body?: string
           city_name?: string | null
+          client_post_id?: string | null
           country_code?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -2168,6 +2204,8 @@ export type Database = {
       }
       profile_stats: {
         Row: {
+          follower_count: number
+          following_count: number
           gifts_received: number
           likes_received: number
           matches_count: number
@@ -2181,6 +2219,8 @@ export type Database = {
           video_sessions_count: number
         }
         Insert: {
+          follower_count?: number
+          following_count?: number
           gifts_received?: number
           likes_received?: number
           matches_count?: number
@@ -2194,6 +2234,8 @@ export type Database = {
           video_sessions_count?: number
         }
         Update: {
+          follower_count?: number
+          following_count?: number
           gifts_received?: number
           likes_received?: number
           matches_count?: number
@@ -2230,6 +2272,7 @@ export type Database = {
           discoverable: boolean
           display_name: string | null
           first_date_idea: string | null
+          follow_approval_required: boolean
           fun_fact: string | null
           gender: Database["public"]["Enums"]["gender_type"] | null
           headline: string | null
@@ -2263,6 +2306,7 @@ export type Database = {
           discoverable?: boolean
           display_name?: string | null
           first_date_idea?: string | null
+          follow_approval_required?: boolean
           fun_fact?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           headline?: string | null
@@ -2296,6 +2340,7 @@ export type Database = {
           discoverable?: boolean
           display_name?: string | null
           first_date_idea?: string | null
+          follow_approval_required?: boolean
           fun_fact?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           headline?: string | null
@@ -3747,6 +3792,22 @@ export type Database = {
           plan_name: string
         }[]
       }
+      create_social_post: {
+        Args: {
+          p_actor_user_id: string
+          p_body: string
+          p_client_post_id?: string
+          p_post_type?: Database["public"]["Enums"]["post_type"]
+          p_visibility?: Database["public"]["Enums"]["post_visibility"]
+        }
+        Returns: {
+          already_created: boolean
+          created_at: string
+          post_id: string
+          post_type: Database["public"]["Enums"]["post_type"]
+          visibility: Database["public"]["Enums"]["post_visibility"]
+        }[]
+      }
       decide_date_idea_request: {
         Args: {
           p_accept: boolean
@@ -3761,6 +3822,18 @@ export type Database = {
           date_idea_status: Database["public"]["Enums"]["date_idea_status"]
           decided_at: string
           request_status: Database["public"]["Enums"]["date_idea_request_status"]
+        }[]
+      }
+      decide_follow_request: {
+        Args: {
+          p_accept: boolean
+          p_actor_user_id: string
+          p_follower_user_id: string
+        }
+        Returns: {
+          decided_at: string
+          follow_status: Database["public"]["Enums"]["follow_status"]
+          follower_user_id: string
         }[]
       }
       decide_moderation_case: {
@@ -3781,6 +3854,14 @@ export type Database = {
           report_status: Database["public"]["Enums"]["report_status"]
         }[]
       }
+      delete_own_social_post: {
+        Args: { p_actor_user_id: string; p_post_id: string }
+        Returns: {
+          already_deleted: boolean
+          deleted_at: string
+          post_id: string
+        }[]
+      }
       end_video_session: {
         Args: {
           p_actor_user_id: string
@@ -3797,6 +3878,15 @@ export type Database = {
       find_user_id_by_telegram_id: {
         Args: { p_telegram_user_id: string }
         Returns: string
+      }
+      follow_user: {
+        Args: { p_actor_user_id: string; p_target_user_id: string }
+        Returns: {
+          accepted_at: string
+          already_following: boolean
+          follow_status: Database["public"]["Enums"]["follow_status"]
+          following_user_id: string
+        }[]
       }
       get_account_gate_state: {
         Args: { p_user_id: string }
@@ -3972,6 +4062,28 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_follow_relationships: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_created_at?: string
+          p_cursor_user_id?: string
+          p_direction?: string
+          p_limit?: number
+        }
+        Returns: {
+          accepted_at: string
+          age_years: number
+          city_name: string
+          country_code: string
+          created_at: string
+          display_name: string
+          follow_status: Database["public"]["Enums"]["follow_status"]
+          muted_at: string
+          primary_photo_blur_hash: string
+          primary_photo_url: string
+          relationship_user_id: string
+        }[]
+      }
       get_gift_catalog: {
         Args: { p_actor_user_id: string }
         Returns: {
@@ -4141,6 +4253,24 @@ export type Database = {
           user_aura_id: string
         }[]
       }
+      get_pending_follow_requests: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_created_at?: string
+          p_cursor_follower_user_id?: string
+          p_limit?: number
+        }
+        Returns: {
+          age_years: number
+          city_name: string
+          country_code: string
+          display_name: string
+          follower_user_id: string
+          primary_photo_blur_hash: string
+          primary_photo_url: string
+          requested_at: string
+        }[]
+      }
       get_premium_plans: {
         Args: never
         Returns: {
@@ -4155,6 +4285,34 @@ export type Database = {
           price_ton: number
           slug: string
           sort_order: number
+        }[]
+      }
+      get_social_feed: {
+        Args: {
+          p_actor_user_id: string
+          p_cursor_created_at?: string
+          p_cursor_post_id?: string
+          p_limit?: number
+          p_scope?: string
+        }
+        Returns: {
+          age_years: number
+          author_user_id: string
+          body: string
+          city_name: string
+          country_code: string
+          created_at: string
+          display_name: string
+          like_count: number
+          liked_by_actor: boolean
+          post_id: string
+          post_type: Database["public"]["Enums"]["post_type"]
+          primary_photo_blur_hash: string
+          primary_photo_url: string
+          reply_count: number
+          repost_count: number
+          updated_at: string
+          visibility: Database["public"]["Enums"]["post_visibility"]
         }[]
       }
       get_ton_boost_payment_context: {
@@ -4661,9 +4819,29 @@ export type Database = {
           date_idea_id: string
         }[]
       }
+      set_follow_muted: {
+        Args: {
+          p_actor_user_id: string
+          p_muted: boolean
+          p_target_user_id: string
+        }
+        Returns: {
+          follow_status: Database["public"]["Enums"]["follow_status"]
+          following_user_id: string
+          muted_at: string
+        }[]
+      }
       set_primary_profile_photo: {
         Args: { p_photo_id: string; p_user_id: string }
         Returns: boolean
+      }
+      set_social_post_like: {
+        Args: { p_actor_user_id: string; p_liked: boolean; p_post_id: string }
+        Returns: {
+          like_count: number
+          liked: boolean
+          post_id: string
+        }[]
       }
       set_user_block: {
         Args: {
@@ -4712,6 +4890,13 @@ export type Database = {
           source_surface: Database["public"]["Enums"]["discovery_surface"]
           target_user_id: string
           undone_action_id: string
+        }[]
+      }
+      unfollow_user: {
+        Args: { p_actor_user_id: string; p_target_user_id: string }
+        Returns: {
+          following_user_id: string
+          removed: boolean
         }[]
       }
     }
