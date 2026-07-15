@@ -18,11 +18,12 @@ records.
 | Date ideas | Implemented and live | Scheduled expiry and moderation workflow |
 | Gifts and auras | Implemented and live | Provider operations and wallet-ownership proof |
 | Messaging and notifications | Implemented and live | Private Realtime delivery and notification preferences |
-| Premium and boosts | Implemented and live | Provider operations, expiry worker, and product analytics |
-| Random video chat | Implemented and live | Client WebRTC integration, TURN provider, and session cleanup worker |
+| Premium and boosts | Implemented and live | Provider operations and product analytics |
+| Random video chat | Implemented and live | Client WebRTC integration, TURN provider, and connection telemetry |
 | Reports and moderation | Implemented and live | Moderator UI, verification evidence, and operational runbooks |
 | Follows and social | Implemented and live | Media, comments, reposts, polls, and ranking |
 | TON and Telegram Stars | Implemented and live | Provider operations and wallet-ownership proof |
+| Operational scale foundation | Implemented and live | Load tests, monitoring dashboards, and measured partitioning |
 
 Authentication, onboarding, discovery, swipes, undo, active-match reads, Daily
 Chemistry, Date Ideas, Gifts/Auras/Payments, Reports/Moderation,
@@ -177,6 +178,23 @@ For 1M+ users, discovery should query a narrow, safe card projection using a
 stable cursor and indexed filters. Nearby search must expose only city/country
 and a coarse geohash prefix. Exact coordinates belong in a private schema with
 strict retention and access controls.
+
+The API response boundary now sets `Cache-Control: private, no-store`,
+`X-Content-Type-Options: nosniff`, and a server-generated `X-Request-Id` on
+both success and error responses. This keeps session-derived data out of shared
+caches and gives operators one safe identifier to correlate with server logs.
+
+The database has one bounded every-minute `pg_cron` job named
+`dating-operational-maintenance`. It deletes expired rate-limit and video signal
+rows, expires abandoned video queues/connecting sessions, and advances due
+boosts for offline users. Each class is batch-limited so the job cannot turn a
+backlog into an unbounded transaction. Inspect `cron.job_run_details` and
+database metrics in production; add capacity before increasing its batch size.
+
+All previously unindexed foreign-key sides reported by the database advisor now
+have covering B-tree indexes. Newly-created social/video indexes still appear as
+unused until real traffic reaches them; do not remove them based on an empty
+database's statistics.
 
 ## Implemented dating loop
 
@@ -369,9 +387,9 @@ Discovery uses a private exposure multiplier for a currently active (or due
 scheduled) boost and a smaller plan-based `priority_discovery` multiplier. It
 never returns these values in a profile card. A returned discovery page records
 boost impressions best-effort; it cannot make discovery unavailable. A future
-worker should expire boosts and start queued boosts promptly even when a user is
-not being discovered, while the current bounded metric path refreshes due
-returned profiles transactionally.
+worker can add product analytics, while the current bounded metric path refreshes
+due returned profiles transactionally and the scheduled maintenance job also
+expires/starts due boosts for users who are not opening discovery.
 
 ### Random video chat
 
@@ -400,6 +418,8 @@ is designed for polling from the HttpOnly-cookie client. The backend records
 only session metadata and short-lived signaling payloads, not media. A client must supply a production TURN configuration before reliable
 mobile/network traversal can be promised; a future LiveKit/Daily adapter can
 replace the transport without changing pairing, safety, or reporting contracts.
+The scheduled maintenance job expires abandoned queue entries, connecting
+sessions, and short-lived signaling rows even when neither participant returns.
 
 ### Follows and social feed
 
@@ -473,7 +493,7 @@ approved and live.
 
 ### Premium and boosts operations
 
-Add an expiry/scheduling worker before advertising precise boost start-time
+Monitor the expiry/scheduling worker before advertising precise boost start-time
 guarantees, reconcile provider refunds through a provider-specific adapter, and
 instrument funnel/retention metrics without copying payment data into client
 analytics. Treat all entitlement changes as verified ledger events, never as a
@@ -481,12 +501,11 @@ client-side flag.
 
 ### Random video operations
 
-Provision a TURN service with short-lived credentials before launch, add a
-scheduled cleanup worker for expired queue entries/signaling rows, and monitor
-connection success, skips, blocks, reports, and median pairing time by coarse
-mode. Do not store recordings by default; any future recording feature needs
-explicit consent, regional retention controls, access review, and a moderation
-evidence policy.
+Provision a TURN service with short-lived credentials before launch and monitor
+connection success, skips, blocks, reports, cron job failures, and median
+pairing time by coarse mode. Do not store recordings by default; any future
+recording feature needs explicit consent, regional retention controls, access
+review, and a moderation evidence policy.
 
 ### Messaging delivery
 
@@ -531,9 +550,11 @@ ownership; a client-supplied address alone is not sufficient.
 6. Run tests, type-check, lint, production build, dependency audit, and
    git diff --check.
 7. Run Supabase security/performance advisors and smoke queries.
-8. Verify both Storage buckets and their public/private flags.
-9. Configure backups, point-in-time recovery, log retention, alerting, and a
+8. Verify the `dating-operational-maintenance` cron job is active and has no
+   recent failed runs.
+9. Verify both Storage buckets and their public/private flags.
+10. Configure backups, point-in-time recovery, log retention, alerting, and a
    staging environment.
-10. Add `TELEGRAM_PAYMENT_WEBHOOK_SECRET`, the exact Telegram webhook URL, and
+11. Add `TELEGRAM_PAYMENT_WEBHOOK_SECRET`, the exact Telegram webhook URL, and
     `TON_PAYMENT_RECEIVER_ADDRESS`/`TONAPI_*` only when payment providers are
     ready to be enabled.

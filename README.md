@@ -44,6 +44,9 @@ The core backend milestones are implemented and applied to the live
   pagination, atomic profile counters, and block-triggered relationship removal
 - server-only social feeds, idempotent safe-text posts, post likes, coarse
   visibility rules, and feed-safe profile projections
+- bounded every-minute database maintenance for expired video/rate-limit rows
+  and offline boost expiry/scheduling, plus foreign-key scale indexes
+- private, non-cacheable API responses with a request-correlation header
 - database-backed rate limits and consistent API responses
 
 Database migrations live in supabase/migrations. The live `dating_app` project
