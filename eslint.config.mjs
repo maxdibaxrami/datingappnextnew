@@ -15,7 +15,6 @@ export default defineConfig([
     files: [
       'src/core/**/*.ts',
       'src/css/**/*.ts',
-      'src/mockEnv.ts',
     ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

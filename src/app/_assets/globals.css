@@ -3,3 +3,56 @@ body {
   padding: 0;
   margin: 0;
 }
+
+:root,
+body,
+[class^="tgui"] {
+  --tg-theme-button-color: #34BABA !important;
+  --tg-theme-link-color: #34BABA !important;
+  --tg-theme-accent-text-color: #34BABA !important;
+  --tgui--button_color: #34BABA !important;
+  --tgui--link_color: #34BABA !important;
+  --tgui--accent_text_color: #34BABA !important;
+
+  /* Custom UI Component Variables */
+  --background: var(--tg-theme-bg-color, #ffffff);
+  --foreground: var(--tg-theme-text-color, #000000);
+  --card: var(--tg-theme-bg-color, #ffffff);
+  --card-foreground: var(--tg-theme-text-color, #000000);
+  --primary: #34BABA;
+  --primary-foreground: #ffffff;
+  --secondary: var(--tg-theme-secondary-bg-color, #f3f4f6);
+  --secondary-foreground: var(--tg-theme-text-color, #000000);
+  --muted: var(--tg-theme-secondary-bg-color, #f3f4f6);
+  --muted-foreground: var(--tg-theme-hint-color, #6b7280);
+  --accent: var(--tg-theme-secondary-bg-color, #f3f4f6);
+  --accent-foreground: var(--tg-theme-text-color, #000000);
+  --destructive: var(--tg-theme-destructive-text-color, #ef4444);
+  --destructive-foreground: #ffffff;
+  --border: var(--tg-theme-hint-color, #e5e7eb);
+  --input: var(--tg-theme-hint-color, #e5e7eb);
+  --ring: #34BABA;
+  --radius: 0.5rem;
+  --font-en-ru: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-fa: "Vazirmatn", Tahoma, sans-serif;
+}
+
+html[lang="en"],
+html[lang="ru"] {
+  font-family: var(--font-en-ru);
+}
+
+html[lang="fa"],
+[dir="rtl"] {
+  font-family: var(--font-fa);
+}
+
+.brand-logo-text {
+  font-family: var(--font-en-ru);
+  font-weight: 800;
+}
+
+body {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
