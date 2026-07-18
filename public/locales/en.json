@@ -2,5 +2,74 @@
   "i18n": {
     "header": "Application supports i18n",
     "footer": "You can select a different language from the dropdown menu."
+  },
+  "onboarding": {
+    "basics": {
+      "title": "Basics",
+      "labelName": "Display Name",
+      "placeholderName": "Enter your name",
+      "labelAge": "Birthdate & Age",
+      "ageCalculated": "Age: {age} years old",
+      "labelGender": "Gender",
+      "descriptionGender": "Select your gender",
+      "gender_woman": "Woman",
+      "gender_woman_desc": "Identify as a woman",
+      "gender_man": "Man",
+      "gender_man_desc": "Identify as a man",
+      "gender_non_binary": "Non-binary",
+      "gender_non_binary_desc": "Identify as non-binary",
+      "gender_other": "Other",
+      "gender_other_desc": "Identify as other",
+      "gender_prefer_not_to_say": "Prefer not to say",
+      "gender_prefer_not_to_say_desc": "Keep my gender private"
+    },
+    "location": {
+      "title": "Location",
+      "labelCountry": "Country",
+      "placeholderCountry": "Select country",
+      "labelCity": "City",
+      "placeholderCity": "Select city",
+      "searchCountry": "Search country...",
+      "searchCity": "Search city...",
+      "useGPS": "Use current location",
+      "locationLoading": "Locating...",
+      "locationDenied": "Location permission denied"
+    },
+    "story": {
+      "title": "Story & Interests",
+      "labelHeadline": "Headline",
+      "placeholderHeadline": "E.g. Coffee, museums and sunset walks",
+      "labelBio": "Bio",
+      "placeholderBio": "Write a little about yourself",
+      "labelInterests": "Interests (max 20)",
+      "selectInterests": "Choose your interests"
+    },
+    "photos": {
+      "title": "Photos",
+      "tips": "Add 3 profile photos. Large on left is primary.",
+      "changePhoto": "Change",
+      "deletePhoto": "Delete",
+      "choosePhoto": "Choose photo",
+      "uploadError": "Failed to upload photo"
+    },
+    "ready": {
+      "title": "Ready!",
+      "message": "Your profile is complete. Welcome to Mull Mull!",
+      "enterApp": "Enter App"
+    },
+    "buttons": {
+      "continue": "Continue",
+      "back": "Back",
+      "saving": "Saving...",
+      "loading": "Loading..."
+    },
+    "validation": {
+      "nameRequired": "Display name must be at least 2 characters",
+      "ageRequired": "You must be 18 or older to use this app",
+      "genderRequired": "Please select your gender",
+      "countryRequired": "Please select a country",
+      "cityRequired": "Please select a city",
+      "photoRequired": "Please add a primary photo"
+    }
   }
 }

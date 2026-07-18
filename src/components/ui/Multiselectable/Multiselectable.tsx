@@ -1,17 +1,18 @@
-import * as React from "react";
-import { cn } from "@/lib/utils";
+'use client';
 
-export interface MultiselectableProps extends React.HTMLAttributes<HTMLDivElement> {}
+import * as React from 'react';
+import { Multiselectable as TGMultiselectable } from '@telegram-apps/telegram-ui';
+import { cn } from '@/lib/utils';
 
-const Multiselectable = React.forwardRef<HTMLDivElement, MultiselectableProps>(
+export type MultiselectableProps = React.ComponentProps<typeof TGMultiselectable>;
+
+export const Multiselectable = React.forwardRef<React.ElementRef<typeof TGMultiselectable>, MultiselectableProps>(
   ({ className, ...props }, ref) => {
     return (
-      <div ref={ref} className={cn("", className)} {...props}>
-        Multiselectable
-      </div>
+      <TGMultiselectable {...props} className={cn('', className)} />
     );
   }
 );
-Multiselectable.displayName = "Multiselectable";
+Multiselectable.displayName = 'Multiselectable';
 
-export { Multiselectable };
+Object.assign(Multiselectable, TGMultiselectable);

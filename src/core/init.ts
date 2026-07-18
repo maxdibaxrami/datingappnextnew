@@ -1,6 +1,9 @@
 import {
   setDebug,
   backButton,
+  mainButton,
+  secondaryButton,
+  locationManager,
   initData,
   init as initSDK,
   miniApp,
@@ -14,7 +17,7 @@ import {
 export async function init(options: {
   debug: boolean;
   eruda: boolean;
-}): Promise<void> {
+  }): Promise<void> {
   // Set @tma.js/sdk-react debug mode and initialize it.
   setDebug(options.debug);
   initSDK();
@@ -28,7 +31,27 @@ export async function init(options: {
   }
 
   // Mount all components used in the project.
-  backButton.mount();
+  try {
+    backButton.mount();
+  } catch (e) {
+    console.error('Failed to mount backButton', e);
+  }
+  try {
+    mainButton.mount();
+  } catch (e) {
+    console.error('Failed to mount mainButton', e);
+  }
+  try {
+    secondaryButton.mount();
+  } catch (e) {
+    console.error('Failed to mount secondaryButton', e);
+  }
+  try {
+    locationManager.mount();
+  } catch (e) {
+    console.error('Failed to mount locationManager', e);
+  }
+
   initData.restore();
 
   try {

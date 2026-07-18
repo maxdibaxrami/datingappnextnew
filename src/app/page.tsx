@@ -1,10 +1,28 @@
 'use client';
 
 import NextImage from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
-import { initData, useRawInitData, useSignal } from '@tma.js/sdk-react';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { initData, useRawInitData, useSignal, mainButton, secondaryButton, locationManager } from '@tma.js/sdk-react';
+import { useTranslations } from 'next-intl';
+import confetti from 'canvas-confetti';
+import imageCompression from 'browser-image-compression';
 
 import { Page } from '@/components/Page';
+import {
+  Button,
+  Cell,
+  Section,
+  Steps,
+  Placeholder,
+  Input,
+  Textarea,
+  Checkbox,
+  Chip,
+  Modal,
+  Selectable,
+  Multiselectable,
+  DatePicker,
+} from '@/components/ui';
 
 import appIcon from './_assets/ChatGPT Image Jul 15, 2026, 01_38_55 PM.png';
 import logoMark from './_assets/ChatGPT Image Jul 15, 2026, 01_38_51 PM.png';
@@ -54,6 +72,7 @@ type ProfileData = {
     bio: string | null;
     countryCode: string | null;
     cityName: string | null;
+    cityId: string | null;
     interests: string[] | null;
     profileCompletedAt: string | null;
   };
@@ -73,20 +92,33 @@ type ProfileForm = {
   gender: string;
   countryCode: string;
   cityName: string;
+  cityId: string;
   headline: string;
   bio: string;
   interests: string;
 };
 
+interface CountryGeo {
+  code: string;
+  name: string;
+  emoji_flag: string | null;
+}
+
+interface CityGeo {
+  id: string;
+  name: string;
+  country_code: string;
+}
+
 const genderOptions = [
-  { value: 'woman', label: 'Woman' },
-  { value: 'man', label: 'Man' },
-  { value: 'non_binary', label: 'Non-binary' },
-  { value: 'other', label: 'Other' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+  { value: 'woman', key: 'gender_woman', descKey: 'gender_woman_desc' },
+  { value: 'man', key: 'gender_man', descKey: 'gender_man_desc' },
+  { value: 'non_binary', key: 'gender_non_binary', descKey: 'gender_non_binary_desc' },
+  { value: 'other', key: 'gender_other', descKey: 'gender_other_desc' },
+  { value: 'prefer_not_to_say', key: 'gender_prefer_not_to_say', descKey: 'gender_prefer_not_to_say_desc' },
 ];
 
-const stepTitles = ['Basics', 'Story', 'Photo', 'Finish'];
+const stepTitles = ['Basics', 'Location', 'Story & Interests', 'Photos', 'Ready'];
 
 function initialForm(profile?: ProfileData | null, telegramName = ''): ProfileForm {
   return {
@@ -95,6 +127,7 @@ function initialForm(profile?: ProfileData | null, telegramName = ''): ProfileFo
     gender: profile?.profile.gender ?? '',
     countryCode: profile?.profile.countryCode ?? '',
     cityName: profile?.profile.cityName ?? '',
+    cityId: profile?.profile.cityId ?? '',
     headline: profile?.profile.headline ?? '',
     bio: profile?.profile.bio ?? '',
     interests: profile?.profile.interests?.join(', ') ?? '',
@@ -249,7 +282,11 @@ function MainHome({ profile }: { profile: ProfileData | null }) {
 
 function ProgressSteps({ step }: { step: number }) {
   return (
-    <ol className="progress-steps" aria-label="Profile setup progress">
+    <ol
+      className="progress-steps"
+      style={{ gridTemplateColumns: `repeat(${stepTitles.length}, minmax(0, 1fr))` }}
+      aria-label="Profile setup progress"
+    >
       {stepTitles.map((title, index) => (
         <li key={title} className={index <= step ? 'is-active' : ''}>
           <span>{index + 1}</span>
@@ -260,6 +297,35 @@ function ProgressSteps({ step }: { step: number }) {
   );
 }
 
+const INTERESTS_LIST = [
+  { label: 'Art', emoji: '🎨' },
+  { label: 'Music', emoji: '🎵' },
+  { label: 'Travel', emoji: '✈️' },
+  { label: 'Gaming', emoji: '🎮' },
+  { label: 'Cooking', emoji: '🍳' },
+  { label: 'Movies', emoji: '🎬' },
+  { label: 'Reading', emoji: '📚' },
+  { label: 'Fitness', emoji: '🏋️' },
+  { label: 'Cycling', emoji: '🚴' },
+  { label: 'Sports', emoji: '⚽' },
+  { label: 'Photography', emoji: '📸' },
+  { label: 'Camping', emoji: '🏕️' },
+  { label: 'Pets', emoji: '🐱' },
+  { label: 'Coffee', emoji: '☕' },
+  { label: 'Wine', emoji: '🍷' },
+  { label: 'Food', emoji: '🍕' },
+  { label: 'Board Games', emoji: '🧩' },
+  { label: 'Coding', emoji: '💻' },
+  { label: 'Writing', emoji: '✍️' },
+  { label: 'Yoga', emoji: '🧘' },
+  { label: 'Dancing', emoji: '💃' },
+  { label: 'Karaoke', emoji: '🎤' },
+  { label: 'Shopping', emoji: '🛍️' },
+  { label: 'Cars', emoji: '🚗' },
+  { label: 'Fashion', emoji: '💄' },
+  { label: 'Nature', emoji: '🌿' }
+];
+
 function CompleteProfileStepper({
   initialProfile,
   telegramName,
@@ -269,31 +335,169 @@ function CompleteProfileStepper({
   telegramName: string;
   onComplete: (profile: ProfileData) => void;
 }) {
+  const t = useTranslations('onboarding');
   const [profile, setProfile] = useState<ProfileData | null>(initialProfile);
   const [form, setForm] = useState(() => initialForm(initialProfile, telegramName));
   const [step, setStep] = useState(0);
-  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [missing, setMissing] = useState<string[]>([]);
 
-  const profileHasPhoto = hasPrimaryPhoto(profile);
+  // Geolocation states
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState('');
+  const [countriesList, setCountriesList] = useState<CountryGeo[]>([]);
+  const [citiesList, setCitiesList] = useState<CityGeo[]>([]);
+  const [countriesSearch, setCountriesSearch] = useState('');
+  const [citiesSearch, setCitiesSearch] = useState('');
+  const [countryModalOpen, setCountryModalOpen] = useState(false);
+  const [cityModalOpen, setCityModalOpen] = useState(false);
+
+  const [country, setCountry] = useState<CountryGeo | null>(() => {
+    if (initialProfile?.profile.countryCode) {
+      return {
+        code: initialProfile.profile.countryCode,
+        name: initialProfile.profile.countryCode,
+        emoji_flag: null
+      };
+    }
+    return null;
+  });
+
+  const [city, setCity] = useState<CityGeo | null>(() => {
+    if (initialProfile?.profile.cityId && initialProfile?.profile.cityName) {
+      return {
+        id: initialProfile.profile.cityId,
+        name: initialProfile.profile.cityName,
+        country_code: initialProfile.profile.countryCode || ''
+      };
+    }
+    return null;
+  });
+
+  // Selected interests state (parsed from initial profile comma string)
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(() => {
+    if (initialProfile?.profile.interests) {
+      return initialProfile.profile.interests;
+    }
+    return [];
+  });
+
+  // Confetti triggering on step 4 (Ready)
+  useEffect(() => {
+    if (step === 4) {
+      try {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+      } catch (e) {
+        console.error('Confetti error:', e);
+      }
+    }
+  }, [step]);
+
+  // Load countries on mount
+  useEffect(() => {
+    let active = true;
+    fetch('/api/countries')
+      .then((r) => r.json())
+      .then((res) => {
+        if (!active) return;
+        if (res.data?.countries) {
+          setCountriesList(res.data.countries);
+          // Resolve initial country name and flag
+          if (country && !country.emoji_flag) {
+            const resolved = res.data.countries.find((c: any) => c.code === country.code);
+            if (resolved) setCountry(resolved);
+          }
+        }
+      })
+      .catch(console.error);
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Load cities of country when selected country changes
+  useEffect(() => {
+    if (!country) {
+      setCitiesList([]);
+      return;
+    }
+    let active = true;
+    fetch(`/api/cities?countryCode=${country.code}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (!active) return;
+        if (res.data?.cities) {
+          setCitiesList(res.data.cities);
+        }
+      })
+      .catch(console.error);
+
+    return () => {
+      active = false;
+    };
+  }, [country]);
+
+  // Map photo slots from profile data
+  const confirmedPhotos = useMemo(() => {
+    return (profile?.photos || []).filter((p) => p.uploadStatus === 'confirmed');
+  }, [profile]);
+
+  const primaryPhoto = useMemo(() => {
+    return confirmedPhotos.find((p) => p.isPrimary) || null;
+  }, [confirmedPhotos]);
+
+  const secondaryPhotos = useMemo(() => {
+    return confirmedPhotos.filter((p) => !p.isPrimary);
+  }, [confirmedPhotos]);
+
+  const profileHasPhoto = Boolean(primaryPhoto);
+
   const canGoNext = useMemo(() => {
     if (step === 0) {
-      return form.displayName.trim().length >= 2
-        && Number(form.ageYears) >= 18
-        && Boolean(form.gender)
-        && /^[a-z]{2}$/i.test(form.countryCode.trim())
-        && form.cityName.trim().length > 0;
+      return (
+        form.displayName.trim().length >= 2 &&
+        Number(form.ageYears) >= 18 &&
+        Boolean(form.gender)
+      );
+    }
+    if (step === 1) {
+      return country !== null && city !== null;
     }
     if (step === 2) {
-      return profileHasPhoto || Boolean(file);
+      return (
+        form.headline.trim().length >= 5 &&
+        form.bio.trim().length >= 10 &&
+        selectedInterests.length > 0 &&
+        selectedInterests.length <= 20
+      );
+    }
+    if (step === 3) {
+      return profileHasPhoto;
     }
     return true;
-  }, [file, form, profileHasPhoto, step]);
+  }, [form, country, city, selectedInterests, profileHasPhoto, step]);
 
   function updateField(field: keyof ProfileForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  // Interests selection handler
+  function toggleInterest(interestLabel: string) {
+    setSelectedInterests((current) => {
+      if (current.includes(interestLabel)) {
+        return current.filter((item) => item !== interestLabel);
+      }
+      if (current.length >= 20) {
+        return current; // Cap at 20
+      }
+      return [...current, interestLabel];
+    });
   }
 
   async function saveProfileFields() {
@@ -301,11 +505,12 @@ function CompleteProfileStepper({
       displayName: form.displayName.trim(),
       ageYears: Number(form.ageYears),
       gender: form.gender,
-      countryCode: form.countryCode.trim().toUpperCase(),
-      cityName: form.cityName.trim(),
+      countryCode: country?.code.toUpperCase() || null,
+      cityName: city?.name || null,
+      cityId: city?.id || null,
       headline: form.headline.trim() || null,
       bio: form.bio.trim() || null,
-      interests: splitList(form.interests),
+      interests: selectedInterests,
       visibility: 'public',
       discoverable: true,
     };
@@ -331,9 +536,7 @@ function CompleteProfileStepper({
       }).then((response) => readApi<ProfileData>(response));
       onComplete(completed);
     } catch (completeError) {
-      const fields = typeof completeError === 'object'
-        && completeError !== null
-        && 'missingFields' in completeError
+      const fields = typeof completeError === 'object' && completeError !== null && 'missingFields' in completeError
         ? ((completeError as { missingFields?: string[] }).missingFields ?? [])
         : [];
       setMissing(fields);
@@ -350,16 +553,10 @@ function CompleteProfileStepper({
     setError('');
     setMissing([]);
     try {
-      if (step === 0 || step === 1) {
+      if (step === 0 || step === 1 || step === 2) {
         await saveProfileFields();
       }
-      if (step === 2) {
-        if (!profileHasPhoto && file) {
-          await uploadPrimaryPhoto(file);
-          await refreshProfile();
-        }
-      }
-      if (step === 3) {
+      if (step === 4) {
         await finishProfile();
         return;
       }
@@ -371,6 +568,212 @@ function CompleteProfileStepper({
     }
   }
 
+  function handleBack() {
+    if (step === 0 || busy) return;
+    setStep((current) => Math.max(current - 1, 0));
+  }
+
+  // Synchronize click handlers with refs to avoid stale closures in native Telegram buttons
+  const handleNextRef = useRef(handleNext);
+  const handleBackRef = useRef(handleBack);
+  handleNextRef.current = handleNext;
+  handleBackRef.current = handleBack;
+
+  useEffect(() => {
+    const onMainClick = () => handleNextRef.current();
+    const onSecClick = () => handleBackRef.current();
+
+    try {
+      mainButton.onClick(onMainClick);
+      secondaryButton.onClick(onSecClick);
+    } catch {}
+
+    return () => {
+      try {
+        mainButton.offClick(onMainClick);
+        secondaryButton.offClick(onSecClick);
+      } catch {}
+    };
+  }, []);
+
+  // Update native Telegram buttons state and properties dynamically
+  useEffect(() => {
+    if (!mainButton.isMounted) return;
+
+    try {
+      if (step === 4) {
+        mainButton.setParams({
+          text: t('ready.enterApp'),
+          isVisible: true,
+          isEnabled: true,
+          isLoaderVisible: busy,
+        });
+      } else {
+        mainButton.setParams({
+          text: t('buttons.continue'),
+          isVisible: true,
+          isEnabled: canGoNext && !busy,
+          isLoaderVisible: busy,
+        });
+      }
+
+      if (canGoNext && !busy && step < 4) {
+        mainButton.enableShineEffect();
+      } else {
+        mainButton.disableShineEffect();
+      }
+
+      if (step > 0 && step < 4) {
+        secondaryButton.setParams({
+          text: t('buttons.back'),
+          isVisible: true,
+          isEnabled: !busy,
+        });
+      } else {
+        secondaryButton.hide();
+      }
+    } catch (e) {
+      console.error('Error configuring Telegram native buttons:', e);
+    }
+  }, [step, canGoNext, busy, t]);
+
+  async function handlePhotoDelete(photoId: string) {
+    setError('');
+    setBusy(true);
+    try {
+      await fetch(`/api/profile/photos/${photoId}`, {
+        method: 'DELETE',
+      }).then((response) => readApi<{ deleted: boolean }>(response));
+      
+      await refreshProfile();
+    } catch (e: any) {
+      setError(e.message || 'Failed to delete photo');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Handle Photo Picker & Compression prior to uploading
+  async function handleSlotUpload(slotIndex: number, fileInput: File) {
+    if (!fileInput) return;
+    setBusy(true);
+    setError('');
+    try {
+      // Client-side image compression
+      const compressionOpts = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(fileInput, compressionOpts);
+
+      const ticket = await fetch('/api/profile/photos/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mimeType: compressedFile.type,
+          fileSizeBytes: compressedFile.size,
+          isPrivate: false,
+        }),
+      }).then((response) => readApi<UploadTicket>(response));
+
+      const uploadResponse = await fetch(ticket.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': compressedFile.type },
+        body: compressedFile,
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(t('photos.uploadError'));
+      }
+
+      const size = await getImageSize(compressedFile);
+      await fetch(`/api/profile/photos/${ticket.photoId}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...size, blurHash: null }),
+      }).then((response) => readApi<{ confirmed: boolean; photoId: string }>(response));
+
+      // Make primary if Slot 0 (left slot)
+      if (slotIndex === 0) {
+        await fetch(`/api/profile/photos/${ticket.photoId}/primary`, {
+          method: 'POST',
+        });
+      }
+
+      await refreshProfile();
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || t('photos.uploadError'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Handle native Location retrieval using locationManager SDK
+  async function handleGPSDetection() {
+    setGeoLoading(true);
+    setGeoError('');
+    try {
+      if (!locationManager.isMounted) {
+        await locationManager.mount();
+      }
+      
+      if (!locationManager.requestLocation.isAvailable()) {
+        throw new Error('Telegram Geolocation is not supported in this client version.');
+      }
+
+      const location = await locationManager.requestLocation();
+      if (!location || location.latitude === undefined || location.longitude === undefined) {
+        throw new Error('Coordinates could not be retrieved.');
+      }
+
+      const response = await fetch('/api/location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          latitude: location.latitude,
+          longitude: location.longitude,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Proximity lookup failed.');
+      }
+
+      const result = await response.json();
+      if (result.data && result.data.city && result.data.country) {
+        setCountry(result.data.country);
+        setCity(result.data.city);
+        
+        setForm((curr) => ({
+          ...curr,
+          countryCode: result.data.country.code,
+          cityName: result.data.city.name,
+          cityId: result.data.city.id,
+        }));
+      } else {
+        throw new Error('GPS coordinates are outside our covered area.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      setGeoError(e.message || 'GPS location lookup failed.');
+    } finally {
+      setGeoLoading(false);
+    }
+  }
+
+  const isFallback = typeof window !== 'undefined' && !(window as any).Telegram?.WebApp?.initData;
+
+  const filteredCountries = countriesList.filter(
+    (c) =>
+      c.name.toLowerCase().includes(countriesSearch.toLowerCase()) ||
+      c.code.toLowerCase().includes(countriesSearch.toLowerCase())
+  );
+
+  const filteredCities = citiesList.filter((c) =>
+    c.name.toLowerCase().includes(citiesSearch.toLowerCase())
+  );
+
   return (
     <main className="auth-page">
       <section className="onboarding-header">
@@ -378,7 +781,7 @@ function CompleteProfileStepper({
           <NextImage src={appIcon} alt="Paw Date" priority />
         </div>
         <div>
-          <p className="eyebrow">Complete profile</p>
+          <p className="eyebrow">{t('basics.title')}</p>
           <h1>Set up your dating card</h1>
         </div>
       </section>
@@ -389,110 +792,274 @@ function CompleteProfileStepper({
         {step === 0 && (
           <div className="field-grid">
             <label>
-              Display name
+              {t('basics.labelName')}
               <input
                 value={form.displayName}
                 onChange={(event) => updateField('displayName', event.target.value)}
-                placeholder="Your name"
+                placeholder={t('basics.placeholderName')}
               />
             </label>
+            
             <label>
-              Age
-              <input
-                value={form.ageYears}
-                onChange={(event) => updateField('ageYears', event.target.value)}
-                inputMode="numeric"
-                placeholder="18+"
+              {t('basics.labelAge')}
+              <DatePicker
+                initialDate={form.ageYears ? new Date(2026 - Number(form.ageYears), 0, 1) : undefined}
+                onChange={(date, age) => {
+                  updateField('ageYears', String(age));
+                }}
               />
+              {form.ageYears && (
+                <div style={{ textAlign: 'center', marginTop: '6px', fontWeight: 600, color: 'var(--tg-theme-button-color, #34baba)' }}>
+                  {t('basics.ageCalculated', { age: form.ageYears })}
+                </div>
+              )}
             </label>
-            <label>
-              Gender
-              <select value={form.gender} onChange={(event) => updateField('gender', event.target.value)}>
-                <option value="">Choose one</option>
+
+            <label style={{ display: 'block', marginTop: '10px' }}>
+              <span style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 800 }}>
+                {t('basics.labelGender')}
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {genderOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                  <Cell
+                    key={option.value}
+                    description={t(`basics.${option.descKey}`)}
+                    after={
+                      <Selectable
+                        name="gender"
+                        checked={form.gender === option.value}
+                        onChange={() => updateField('gender', option.value)}
+                      />
+                    }
+                    onClick={() => updateField('gender', option.value)}
+                  >
+                    {t(`basics.${option.key}`)}
+                  </Cell>
                 ))}
-              </select>
+              </div>
             </label>
-            <div className="inline-fields">
-              <label>
-                Country
-                <input
-                  value={form.countryCode}
-                  onChange={(event) => updateField('countryCode', event.target.value)}
-                  maxLength={2}
-                  placeholder="US"
-                />
-              </label>
-              <label>
-                City
-                <input
-                  value={form.cityName}
-                  onChange={(event) => updateField('cityName', event.target.value)}
-                  placeholder="City"
-                />
-              </label>
-            </div>
           </div>
         )}
 
         {step === 1 && (
           <div className="field-grid">
+            <div className="gps-button-container">
+              <button
+                type="button"
+                className="gps-button"
+                onClick={handleGPSDetection}
+                disabled={geoLoading}
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 12-8 12S4 15.25 4 10a8 8 0 0 1 8-8z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                {geoLoading ? t('location.locationLoading') : t('location.useGPS')}
+              </button>
+              {geoError && (
+                <p className="form-error" style={{ marginTop: '8px' }}>{geoError}</p>
+              )}
+            </div>
+
             <label>
-              Headline
-              <input
-                value={form.headline}
-                onChange={(event) => updateField('headline', event.target.value)}
-                maxLength={120}
-                placeholder="Coffee, museums, and sunset walks"
-              />
+              {t('location.labelCountry')}
+              <Cell
+                onClick={() => setCountryModalOpen(true)}
+                after={<span className="geo-flag">{country?.emoji_flag || '🌍'}</span>}
+              >
+                {country ? country.name : t('location.placeholderCountry')}
+              </Cell>
             </label>
-            <label>
-              Bio
-              <textarea
-                value={form.bio}
-                onChange={(event) => updateField('bio', event.target.value)}
-                maxLength={500}
-                rows={5}
-                placeholder="Write a little about yourself"
-              />
-            </label>
-            <label>
-              Interests
-              <input
-                value={form.interests}
-                onChange={(event) => updateField('interests', event.target.value)}
-                placeholder="music, films, travel"
-              />
+
+            <label className={!country ? 'tg-cell-disabled' : ''}>
+              {t('location.labelCity')}
+              <Cell
+                onClick={() => country && setCityModalOpen(true)}
+                after={<span>🏙️</span>}
+              >
+                {city ? city.name : t('location.placeholderCity')}
+              </Cell>
             </label>
           </div>
         )}
 
         {step === 2 && (
-          <div className="photo-step">
-            <div className="photo-target">
-              {profileHasPhoto ? (
-                <strong>Primary photo is ready</strong>
-              ) : (
-                <strong>Add your first profile photo</strong>
-              )}
-              <span>JPEG, PNG, or WebP up to 8 MB.</span>
-            </div>
-            <label className="file-picker">
+          <div className="field-grid">
+            <label>
+              {t('story.labelHeadline')}
               <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                value={form.headline}
+                onChange={(event) => updateField('headline', event.target.value)}
+                maxLength={120}
+                placeholder={t('story.placeholderHeadline')}
               />
-              <span>{file ? file.name : 'Choose photo'}</span>
+            </label>
+            
+            <label>
+              {t('story.labelBio')}
+              <textarea
+                value={form.bio}
+                onChange={(event) => updateField('bio', event.target.value)}
+                maxLength={500}
+                rows={4}
+                placeholder={t('story.placeholderBio')}
+              />
+            </label>
+
+            <label style={{ display: 'block', marginTop: '10px' }}>
+              <span style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 800 }}>
+                {t('story.labelInterests')}
+              </span>
+              <div className="interests-grid">
+                {INTERESTS_LIST.map((interest) => {
+                  const isSelected = selectedInterests.includes(interest.label);
+                  return (
+                    <div
+                      key={interest.label}
+                      className={`interest-chip ${isSelected ? 'is-selected' : ''}`}
+                      onClick={() => toggleInterest(interest.label)}
+                    >
+                      <span style={{ fontSize: '16px' }}>{interest.emoji}</span>
+                      <span>{interest.label}</span>
+                      <div className="interest-chip-checkbox">
+                        {isSelected ? '✓' : ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </label>
           </div>
         )}
 
         {step === 3 && (
+          <div className="photo-step">
+            <div className="photo-target" style={{ border: '0', padding: '0', minHeight: 'auto' }}>
+              <p style={{ margin: '0 0 10px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>
+                {t('photos.tips')}
+              </p>
+            </div>
+
+            <div className="photo-grid-layout">
+              {/* Left Slot - Large Primary Photo */}
+              <div className="photo-grid-left">
+                {primaryPhoto ? (
+                  <div className="photo-slot photo-slot-large has-image">
+                    <img src={primaryPhoto.publicUrl || ''} alt="Primary" />
+                    <div className="photo-slot-overlay">
+                      <button
+                        type="button"
+                        className="photo-slot-btn"
+                        onClick={() => handlePhotoDelete(primaryPhoto.id)}
+                      >
+                        {t('photos.deletePhoto')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="photo-slot photo-slot-large">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      disabled={busy}
+                      onChange={(event) => {
+                        const fileInput = event.target.files?.[0];
+                        if (fileInput) handleSlotUpload(0, fileInput);
+                      }}
+                    />
+                    <div className="photo-slot-add">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="16" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                      </svg>
+                      <span>{t('photos.choosePhoto')}</span>
+                    </div>
+                  </label>
+                )}
+              </div>
+
+              {/* Right Slots - Two Smaller Secondary Photos */}
+              <div className="photo-grid-right">
+                {/* Secondary Slot 1 */}
+                {secondaryPhotos[0] ? (
+                  <div className="photo-slot photo-slot-small has-image">
+                    <img src={secondaryPhotos[0].publicUrl || ''} alt="Secondary 1" />
+                    <div className="photo-slot-overlay">
+                      <button
+                        type="button"
+                        className="photo-slot-btn"
+                        onClick={() => handlePhotoDelete(secondaryPhotos[0].id)}
+                      >
+                        {t('photos.deletePhoto')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="photo-slot photo-slot-small">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      disabled={busy}
+                      onChange={(event) => {
+                        const fileInput = event.target.files?.[0];
+                        if (fileInput) handleSlotUpload(1, fileInput);
+                      }}
+                    />
+                    <div className="photo-slot-add">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    </div>
+                  </label>
+                )}
+
+                {/* Secondary Slot 2 */}
+                {secondaryPhotos[1] ? (
+                  <div className="photo-slot photo-slot-small has-image">
+                    <img src={secondaryPhotos[1].publicUrl || ''} alt="Secondary 2" />
+                    <div className="photo-slot-overlay">
+                      <button
+                        type="button"
+                        className="photo-slot-btn"
+                        onClick={() => handlePhotoDelete(secondaryPhotos[1].id)}
+                      >
+                        {t('photos.deletePhoto')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="photo-slot photo-slot-small">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      disabled={busy}
+                      onChange={(event) => {
+                        const fileInput = event.target.files?.[0];
+                        if (fileInput) handleSlotUpload(2, fileInput);
+                      }}
+                    />
+                    <div className="photo-slot-add">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    </div>
+                  </label>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="finish-step">
-            <h2>Almost there</h2>
-            <p>The backend will check the required fields and unlock the main app when your profile is complete.</p>
+            <h2>{t('ready.title')}</h2>
+            <p>{t('ready.message')}</p>
             {missing.length > 0 && (
               <p className="missing-fields">Missing: {missing.join(', ')}</p>
             )}
@@ -501,25 +1068,124 @@ function CompleteProfileStepper({
 
         {error && <p className="form-error" role="alert">{error}</p>}
 
-        <div className="step-actions">
-          <button
-            type="button"
-            className="ghost-button"
-            disabled={step === 0 || busy}
-            onClick={() => setStep((current) => Math.max(current - 1, 0))}
-          >
-            Back
-          </button>
-          <button
-            type="button"
-            className="primary-button"
-            disabled={!canGoNext || busy}
-            onClick={handleNext}
-          >
-            {busy ? 'Saving...' : step === 3 ? 'Enter app' : 'Continue'}
-          </button>
-        </div>
+        {isFallback && (
+          <div className="step-actions">
+            {step > 0 && step < 4 && (
+              <button
+                type="button"
+                className="ghost-button"
+                disabled={busy}
+                onClick={handleBack}
+              >
+                {t('buttons.back')}
+              </button>
+            )}
+            <button
+              type="button"
+              className="primary-button"
+              disabled={!canGoNext || busy}
+              onClick={handleNext}
+              style={{ gridColumn: step === 0 || step === 4 ? 'span 2' : 'auto' }}
+            >
+              {busy ? t('buttons.saving') : step === 4 ? t('ready.enterApp') : t('buttons.continue')}
+            </button>
+          </div>
+        )}
       </section>
+
+      {/* Country Selection Modal */}
+      {countryModalOpen && (
+        <div className="geo-modal-overlay">
+          <div className="geo-modal-content">
+            <div className="geo-modal-header">
+              <h3>{t('location.labelCountry')}</h3>
+              <button
+                type="button"
+                className="geo-modal-close"
+                onClick={() => setCountryModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="geo-modal-search">
+              <input
+                value={countriesSearch}
+                onChange={(e) => setCountriesSearch(e.target.value)}
+                placeholder={t('location.searchCountry')}
+              />
+            </div>
+            <div className="geo-modal-list">
+              {filteredCountries.map((item) => (
+                <div
+                  key={item.code}
+                  className="geo-list-item"
+                  onClick={() => {
+                    setCountry(item);
+                    setCity(null); // Clear city when country changes
+                    setForm((curr) => ({
+                      ...curr,
+                      countryCode: item.code,
+                      cityName: '',
+                      cityId: '',
+                    }));
+                    setCountryModalOpen(false);
+                    setCountriesSearch('');
+                  }}
+                >
+                  <span className="geo-flag">{item.emoji_flag || '🌍'}</span>
+                  <span className="geo-name">{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* City Selection Modal */}
+      {cityModalOpen && (
+        <div className="geo-modal-overlay">
+          <div className="geo-modal-content">
+            <div className="geo-modal-header">
+              <h3>{t('location.labelCity')}</h3>
+              <button
+                type="button"
+                className="geo-modal-close"
+                onClick={() => setCityModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="geo-modal-search">
+              <input
+                value={citiesSearch}
+                onChange={(e) => setCitiesSearch(e.target.value)}
+                placeholder={t('location.searchCity')}
+              />
+            </div>
+            <div className="geo-modal-list">
+              {filteredCities.map((item) => (
+                <div
+                  key={item.id}
+                  className="geo-list-item"
+                  onClick={() => {
+                    setCity(item);
+                    setForm((curr) => ({
+                      ...curr,
+                      cityName: item.name,
+                      cityId: item.id,
+                    }));
+                    setCityModalOpen(false);
+                    setCitiesSearch('');
+                  }}
+                >
+                  <span className="geo-flag">🏙️</span>
+                  <span className="geo-name">{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

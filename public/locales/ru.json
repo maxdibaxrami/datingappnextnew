@@ -2,5 +2,74 @@
   "i18n": {
     "header": "Поддержка i18n",
     "footer": "Вы можете выбрать другой язык в выпадающем меню."
+  },
+  "onboarding": {
+    "basics": {
+      "title": "Основное",
+      "labelName": "Отображаемое имя",
+      "placeholderName": "Введите ваше имя",
+      "labelAge": "Дата рождения и возраст",
+      "ageCalculated": "Возраст: {age} лет",
+      "labelGender": "Пол",
+      "descriptionGender": "Выберите ваш пол",
+      "gender_woman": "Женщина",
+      "gender_woman_desc": "Идентифицирую себя как женщина",
+      "gender_man": "Мужчина",
+      "gender_man_desc": "Идентифицирую себя как мужчина",
+      "gender_non_binary": "Небинарный",
+      "gender_non_binary_desc": "Идентифицирую себя как небинарная личность",
+      "gender_other": "Другое",
+      "gender_other_desc": "Другая гендерная идентичность",
+      "gender_prefer_not_to_say": "Предпочитаю не указывать",
+      "gender_prefer_not_to_say_desc": "Скрыть мою гендерную принадлежность"
+    },
+    "location": {
+      "title": "Местоположение",
+      "labelCountry": "Страна",
+      "placeholderCountry": "Выбрать страну",
+      "labelCity": "Город",
+      "placeholderCity": "Выбрать город",
+      "searchCountry": "Поиск страны...",
+      "searchCity": "Поиск города...",
+      "useGPS": "Определить по GPS",
+      "locationLoading": "Определение...",
+      "locationDenied": "Доступ к геопозиции отклонен"
+    },
+    "story": {
+      "title": "О себе и интересы",
+      "labelHeadline": "Заголовок",
+      "placeholderHeadline": "Например: Кофе, музеи и прогулки на закате",
+      "labelBio": "О себе",
+      "placeholderBio": "Расскажите немного о себе",
+      "labelInterests": "Интересы (макс. 20)",
+      "selectInterests": "Выберите ваши интересы"
+    },
+    "photos": {
+      "title": "Фотографии",
+      "tips": "Добавьте 3 фотографии. Большое фото слева — главное.",
+      "changePhoto": "Изменить",
+      "deletePhoto": "Удалить",
+      "choosePhoto": "Выбрать фото",
+      "uploadError": "Не удалось загрузить фото"
+    },
+    "ready": {
+      "title": "Готово!",
+      "message": "Ваш профиль заполнен. Добро пожаловать в Mull Mull!",
+      "enterApp": "Войти в приложение"
+    },
+    "buttons": {
+      "continue": "Продолжить",
+      "back": "Назад",
+      "saving": "Сохранение...",
+      "loading": "Загрузка..."
+    },
+    "validation": {
+      "nameRequired": "Имя должно содержать не менее 2 символов",
+      "ageRequired": "Вам должно быть 18 или более лет для использования приложения",
+      "genderRequired": "Пожалуйста, выберите ваш пол",
+      "countryRequired": "Пожалуйста, выберите страну",
+      "cityRequired": "Пожалуйста, выберите город",
+      "photoRequired": "Пожалуйста, добавьте основную фотографию"
+    }
   }
 }

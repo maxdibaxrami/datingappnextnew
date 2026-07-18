@@ -2,5 +2,74 @@
   "i18n": {
     "header": "برنامه از چندزبانگی پشتیبانی می‌کند",
     "footer": "شما می‌توانید زبان متفاوتی را از منوی کشویی انتخاب کنید."
+  },
+  "onboarding": {
+    "basics": {
+      "title": "اطلاعات پایه",
+      "labelName": "نام نمایشی",
+      "placeholderName": "نام خود را وارد کنید",
+      "labelAge": "تاریخ تولد و سن",
+      "ageCalculated": "سن: {age} سال",
+      "labelGender": "جنسیت",
+      "descriptionGender": "جنسیت خود را انتخاب کنید",
+      "gender_woman": "زن",
+      "gender_woman_desc": "من خودم را زن معرفی می‌کنم",
+      "gender_man": "مرد",
+      "gender_man_desc": "من خودم را مرد معرفی می‌کنم",
+      "gender_non_binary": "غیر باینری",
+      "gender_non_binary_desc": "من خودم را غیر باینری معرفی می‌کنم",
+      "gender_other": "سایر هویت‌ها",
+      "gender_other_desc": "من خودم را با هویت دیگری معرفی می‌کنم",
+      "gender_prefer_not_to_say": "ترجیح می‌دهم نگویم",
+      "gender_prefer_not_to_say_desc": "جنسیت خود را مخفی نگه می‌دارم"
+    },
+    "location": {
+      "title": "موقعیت مکانی",
+      "labelCountry": "کشور",
+      "placeholderCountry": "انتخاب کشور",
+      "labelCity": "شهر",
+      "placeholderCity": "انتخاب شهر",
+      "searchCountry": "جستجوی کشور...",
+      "searchCity": "جستجوی شهر...",
+      "useGPS": "استفاده از موقعیت فعلی",
+      "locationLoading": "در حال مکان‌یابی...",
+      "locationDenied": "دسترسی به موقعیت مکانی رد شد"
+    },
+    "story": {
+      "title": "درباره من و علاقه‌مندی‌ها",
+      "labelHeadline": "عنوان",
+      "placeholderHeadline": "مثال: قهوه، موزه‌ها و پیاده‌روی در غروب",
+      "labelBio": "درباره من",
+      "placeholderBio": "کمی درباره خودتان بنویسید",
+      "labelInterests": "علاقه‌مندی‌ها (حداکثر ۲۰)",
+      "selectInterests": "علاقه‌مندی‌های خود را انتخاب کنید"
+    },
+    "photos": {
+      "title": "عکس‌ها",
+      "tips": "۳ عکس انتخاب کنید. عکس بزرگ سمت چپ عکس اصلی است.",
+      "changePhoto": "تغییر",
+      "deletePhoto": "حذف",
+      "choosePhoto": "انتخاب عکس",
+      "uploadError": "خطا در بارگذاری عکس"
+    },
+    "ready": {
+      "title": "آماده!",
+      "message": "پروفایل شما کامل شد. به Mull Mull خوش آمدید!",
+      "enterApp": "ورود به برنامه"
+    },
+    "buttons": {
+      "continue": "ادامه",
+      "back": "بازگشت",
+      "saving": "در حال ذخیره‌سازی...",
+      "loading": "در حال بارگذاری..."
+    },
+    "validation": {
+      "nameRequired": "نام نمایشی باید حداقل ۲ کاراکتر باشد",
+      "ageRequired": "برای استفاده از برنامه باید ۱۸ سال یا بیشتر داشته باشید",
+      "genderRequired": "لطفاً جنسیت خود را انتخاب کنید",
+      "countryRequired": "لطفاً یک کشور انتخاب کنید",
+      "cityRequired": "لطفاً یک شهر انتخاب کنید",
+      "photoRequired": "لطفاً عکس اصلی خود را آپلود کنید"
+    }
   }
 }
