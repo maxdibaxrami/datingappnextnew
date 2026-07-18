@@ -353,6 +353,47 @@
   font-weight: 800;
 }
 
+.profile-page {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: max(12px, var(--tg-viewport-safe-area-inset-top, 0px)) 14px calc(100px + var(--tg-viewport-safe-area-inset-bottom, 0px));
+  background: var(--tg-theme-secondary-bg-color, #f5f7f6);
+  color: var(--tg-theme-text-color, #18211f);
+}
+
+.profile-topbar { display: flex; align-items: center; justify-content: space-between; min-height: 42px; font-size: 20px; }
+.profile-topbar span { color: var(--tg-theme-hint-color, #78817e); font-size: 24px; }
+.profile-hero { display: grid; gap: 16px; margin: 8px 0 18px; }
+.profile-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.profile-photo { position: relative; aspect-ratio: 1; overflow: hidden; display: grid; place-items: center; border-radius: 12px; background: var(--tg-theme-bg-color, #fff); border: 1px solid rgba(36, 47, 44, .1); }
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.profile-photo button { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0,0,0,.58); color: #fff; font-size: 20px; line-height: 1; }
+.profile-photo--add { color: #247f7f; cursor: pointer; gap: 2px; font-size: 30px; }
+.profile-photo--add input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.profile-photo--add small { color: inherit; font-size: 12px; font-weight: 700; }
+.profile-intro h1 { margin: 0; font-size: 27px; line-height: 1.15; }
+.profile-intro p { margin: 6px 0 0; color: var(--tg-theme-hint-color, #78817e); }
+.profile-page .tgui-section { margin-bottom: 14px; }
+.bottom-nav { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(4, 1fr); min-height: 72px; padding-bottom: var(--tg-viewport-safe-area-inset-bottom, 0px); border-top: 1px solid rgba(36,47,44,.1); background: color-mix(in srgb, var(--tg-theme-bg-color, #fff) 94%, transparent); backdrop-filter: blur(18px); }
+.bottom-nav button { display: grid; place-content: center; gap: 3px; border: 0; background: transparent; color: var(--tg-theme-hint-color, #78817e); font-size: 20px; }
+.bottom-nav button:last-child { color: #247f7f; }
+.bottom-nav span { font-size: 11px; font-weight: 700; }
+.profile-editor-backdrop { position: fixed; z-index: 70; inset: 0; display: flex; align-items: flex-end; background: rgba(0, 0, 0, .38); }
+.profile-editor-sheet { width: 100%; max-width: 640px; max-height: min(84dvh, 640px); box-sizing: border-box; margin: 0 auto; overflow: auto; padding: 8px 16px max(18px, var(--tg-viewport-safe-area-inset-bottom, 0px)); border-radius: 20px 20px 0 0; background: var(--tg-theme-bg-color, #fff); box-shadow: 0 -12px 40px rgba(0, 0, 0, .16); }
+.sheet-handle { width: 38px; height: 4px; margin: 0 auto 12px; border-radius: 99px; background: var(--tg-theme-section-separator-color, #d9dddd); }
+.profile-editor-sheet header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.profile-editor-sheet h2 { margin: 0; font-size: 20px; }
+.profile-editor-sheet header button { border: 0; background: transparent; color: var(--tg-theme-hint-color, #78817e); font-size: 28px; }
+.editor-options { display: grid; gap: 8px; }
+.editor-options button { min-height: 48px; border: 1px solid rgba(36,47,44,.12); border-radius: 10px; background: transparent; color: inherit; text-transform: capitalize; }
+.editor-options button.is-selected { border-color: #34baba; background: rgba(52,186,186,.12); color: #247f7f; font-weight: 800; }
+.editor-hint { margin: 8px 0 0; color: var(--tg-theme-hint-color, #78817e); font-size: 13px; }
+.editor-actions { display: grid; grid-template-columns: 1fr 1.5fr; gap: 8px; margin-top: 18px; }
+.editor-actions button { min-height: 46px; border: 0; border-radius: 10px; background: rgba(36,47,44,.08); color: inherit; font-weight: 800; }
+.editor-actions button:last-child { background: #34baba; color: #fff; }
+
 .gps-button {
   width: 100%;
   display: flex;

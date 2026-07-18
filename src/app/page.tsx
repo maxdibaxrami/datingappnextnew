@@ -8,7 +8,7 @@ import imageCompression from 'browser-image-compression';
 import { useTranslations } from 'next-intl';
 
 import { Page } from '@/components/Page';
-import { Cell, Checkbox, DatePicker, Input, Section, Selectable, Steps, Textarea } from '@/components/ui';
+import { Cell, Checkbox, DatePicker, Input, List, Section, Selectable, Steps, Textarea } from '@/components/ui';
 
 import appIcon from './_assets/ChatGPT Image Jul 15, 2026, 01_38_55 PM.png';
 import './home.css';
@@ -56,10 +56,23 @@ type ProfileData = {
     gender: string | null;
     headline: string | null;
     bio: string | null;
+    aboutMe?: string | null;
+    lookingForText?: string | null;
+    personalitySummary?: string | null;
+    funFact?: string | null;
+    firstDateIdea?: string | null;
+    pronouns?: string | null;
+    mood?: string | null;
     countryCode: string | null;
     cityName: string | null;
     cityId: string | null;
     interests: string[] | null;
+    languages?: string[] | null;
+    relationshipGoals?: string[] | null;
+    intents?: string[] | null;
+    visibility?: 'public' | 'hidden' | 'matches_only' | 'paused';
+    discoverable?: boolean;
+    followApprovalRequired?: boolean;
     profileCompletedAt: string | null;
   };
   photos: ProfilePhoto[];
@@ -962,6 +975,189 @@ function CompleteProfileStepper({
   );
 }
 
+type EditableField =
+  | 'displayName'
+  | 'headline'
+  | 'bio'
+  | 'aboutMe'
+  | 'lookingForText'
+  | 'personalitySummary'
+  | 'funFact'
+  | 'firstDateIdea'
+  | 'pronouns'
+  | 'mood'
+  | 'languages'
+  | 'relationshipGoals'
+  | 'intents'
+  | 'interests'
+  | 'discoverable'
+  | 'followApprovalRequired'
+  | 'visibility';
+
+type ProfileEditor = {
+  field: EditableField;
+  label: string;
+  multiline?: boolean;
+  options?: readonly string[];
+};
+
+const profileSections: Array<{ title: string; fields: ProfileEditor[] }> = [
+  {
+    title: 'About you',
+    fields: [
+      { field: 'displayName', label: 'Name' },
+      { field: 'headline', label: 'Headline' },
+      { field: 'bio', label: 'Bio', multiline: true },
+      { field: 'aboutMe', label: 'About me', multiline: true },
+      { field: 'pronouns', label: 'Pronouns' },
+      { field: 'mood', label: 'Current mood' },
+    ],
+  },
+  {
+    title: 'Dating preferences',
+    fields: [
+      { field: 'lookingForText', label: 'What you are looking for', multiline: true },
+      { field: 'relationshipGoals', label: 'Relationship goals' },
+      { field: 'intents', label: 'Dating intentions' },
+      { field: 'firstDateIdea', label: 'Perfect first date', multiline: true },
+    ],
+  },
+  {
+    title: 'More to discover',
+    fields: [
+      { field: 'personalitySummary', label: 'Personality', multiline: true },
+      { field: 'funFact', label: 'Fun fact', multiline: true },
+      { field: 'interests', label: 'Interests' },
+      { field: 'languages', label: 'Languages' },
+    ],
+  },
+  {
+    title: 'Privacy',
+    fields: [
+      { field: 'discoverable', label: 'Show me in discovery' },
+      { field: 'followApprovalRequired', label: 'Approve followers manually' },
+      { field: 'visibility', label: 'Profile visibility', options: ['public', 'matches_only', 'hidden', 'paused'] },
+    ],
+  },
+];
+
+function profileValue(profile: ProfileData['profile'], field: EditableField): string {
+  const value = profile[field];
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'boolean') return value ? 'On' : 'Off';
+  if (value === 'matches_only') return 'Matches only';
+  if (value === 'paused') return 'Paused';
+  return value?.trim() || 'Add';
+}
+
+function ProfileScreen({ profile, onProfileChange }: { profile: ProfileData; onProfileChange: (profile: ProfileData) => void }) {
+  const [editor, setEditor] = useState<ProfileEditor | null>(null);
+  const [value, setValue] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const confirmedPhotos = useMemo(
+    () => profile.photos.filter((photo) => photo.uploadStatus === 'confirmed').sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.sortOrder - b.sortOrder),
+    [profile.photos],
+  );
+
+  const closeEditor = useCallback(() => {
+    if (!busy) setEditor(null);
+  }, [busy]);
+
+  const saveEditor = useCallback(async () => {
+    if (!editor || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      let nextValue: string | string[] | boolean = value.trim();
+      if (editor.field === 'discoverable' || editor.field === 'followApprovalRequired') nextValue = value === 'On';
+      if (['languages', 'relationshipGoals', 'intents', 'interests'].includes(editor.field)) {
+        nextValue = value.split(',').map((item) => item.trim()).filter(Boolean);
+      }
+      const updated = await fetch('/api/profile/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [editor.field]: nextValue || null }),
+      }).then((response) => readApi<ProfileData>(response));
+      onProfileChange(updated);
+      setEditor(null);
+    } catch (saveError) {
+      setError(getErrorMessage(saveError));
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, editor, onProfileChange, value]);
+
+  const saveRef = useRef(saveEditor);
+  saveRef.current = saveEditor;
+  useEffect(() => {
+    if (!editor) return;
+    const off = mainButton.onClick.ifAvailable(() => saveRef.current());
+    mainButton.setParams.ifAvailable({ hasShineEffect: !busy, isEnabled: !busy, isLoaderVisible: busy, isVisible: true, text: busy ? 'Saving…' : 'Save changes' });
+    secondaryButton.setParams.ifAvailable({ hasShineEffect: false, isEnabled: !busy, isLoaderVisible: false, isVisible: true, position: 'left', text: 'Cancel' });
+    const cancel = secondaryButton.onClick.ifAvailable(closeEditor);
+    return () => {
+      if (off.ok) off.data();
+      if (cancel.ok) cancel.data();
+      mainButton.hide.ifAvailable();
+      secondaryButton.hide.ifAvailable();
+    };
+  }, [busy, closeEditor, editor]);
+
+  async function uploadPhoto(rawFile: File) {
+    setBusy(true);
+    setError('');
+    try {
+      const file = await imageCompression(rawFile, { maxSizeMB: 1, maxWidthOrHeight: 1600, useWebWorker: true });
+      const ticket = await fetch('/api/profile/photos/upload-url', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileSizeBytes: file.size, isPrivate: false, mimeType: file.type }),
+      }).then((response) => readApi<UploadTicket>(response));
+      const uploaded = await fetch(ticket.signedUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+      if (!uploaded.ok) throw new Error('Photo upload failed. Please try again.');
+      const size = await getImageSize(file);
+      await fetch(`/api/profile/photos/${ticket.photoId}/confirm`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...size, blurHash: null }) }).then((response) => readApi<unknown>(response));
+      const updated = await fetch('/api/profile/me').then((response) => readApi<ProfileData>(response));
+      onProfileChange(updated);
+    } catch (uploadError) {
+      setError(getErrorMessage(uploadError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deletePhoto(photoId: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch(`/api/profile/photos/${photoId}`, { method: 'DELETE' }).then((response) => readApi<unknown>(response));
+      const updated = await fetch('/api/profile/me').then((response) => readApi<ProfileData>(response));
+      onProfileChange(updated);
+    } catch (deleteError) {
+      setError(getErrorMessage(deleteError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="profile-page">
+      <header className="profile-topbar"><strong>Profile</strong><span>⋯</span></header>
+      <section className="profile-hero">
+        <div className="profile-photo-grid">
+          {confirmedPhotos.slice(0, 6).map((photo) => <div className="profile-photo" key={photo.id}>{photo.publicUrl && <img alt="Your profile" src={photo.publicUrl} />}<button aria-label="Remove photo" disabled={busy} onClick={() => void deletePhoto(photo.id)} type="button">×</button></div>)}
+          {confirmedPhotos.length < 9 && <label className="profile-photo profile-photo--add"><input accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void uploadPhoto(file); }} type="file" /><span>+</span><small>Add photo</small></label>}
+        </div>
+        <div className="profile-intro"><h1>{profile.profile.displayName ?? 'Your profile'}{profile.profile.ageYears ? `, ${profile.profile.ageYears}` : ''}</h1><p>{profile.profile.cityName || 'Add your city'} · {profile.profile.gender || 'Add gender'}</p></div>
+      </section>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      {profileSections.map((section) => <Section key={section.title} header={section.title}><List>{section.fields.map((field) => <Cell after={<span className="cell-chevron">›</span>} description={profileValue(profile.profile, field.field)} key={field.field} onClick={() => { setValue(profileValue(profile.profile, field.field) === 'Add' ? '' : Array.isArray(profile.profile[field.field]) ? (profile.profile[field.field] as string[]).join(', ') : typeof profile.profile[field.field] === 'boolean' ? profile.profile[field.field] ? 'On' : 'Off' : String(profile.profile[field.field] ?? '')); setEditor(field); }}>{field.label}</Cell>)}</List></Section>)}
+      <nav aria-label="Main navigation" className="bottom-nav"><button type="button">⌂<span>Discover</span></button><button type="button">♡<span>Likes</span></button><button type="button">✦<span>Matches</span></button><button type="button">☻<span>Profile</span></button></nav>
+      {editor && <div className="profile-editor-backdrop" onMouseDown={closeEditor} role="presentation"><section aria-label={`Edit ${editor.label}`} aria-modal="true" className="profile-editor-sheet" onMouseDown={(event) => event.stopPropagation()} role="dialog"><div className="sheet-handle" /><header><h2>{editor.label}</h2><button aria-label="Close" disabled={busy} onClick={closeEditor} type="button">×</button></header>{editor.field === 'discoverable' || editor.field === 'followApprovalRequired' ? <div className="editor-options">{['On', 'Off'].map((option) => <button className={value === option ? 'is-selected' : ''} key={option} onClick={() => setValue(option)} type="button">{option}</button>)}</div> : editor.options ? <div className="editor-options">{editor.options.map((option) => <button className={value === option ? 'is-selected' : ''} key={option} onClick={() => setValue(option)} type="button">{option.replace('_', ' ')}</button>)}</div> : editor.multiline ? <Textarea maxLength={editor.field === 'aboutMe' ? 2000 : 500} onChange={(event) => setValue(event.target.value)} placeholder={`Add ${editor.label.toLowerCase()}`} rows={5} value={value} /> : <Input maxLength={editor.field === 'displayName' ? 80 : 300} onChange={(event) => setValue(event.target.value)} placeholder={`Add ${editor.label.toLowerCase()}`} value={value} />}{['languages', 'relationshipGoals', 'intents', 'interests'].includes(editor.field) && <p className="editor-hint">Separate items with commas.</p>}<div className="editor-actions"><button disabled={busy} onClick={closeEditor} type="button">Cancel</button><button disabled={busy} onClick={() => void saveEditor()} type="button">{busy ? 'Saving…' : 'Save changes'}</button></div></section></div>}
+    </main>
+  );
+}
+
 export default function Home() {
   const t = useTranslations('app');
   const rawInitData = useRawInitData();
@@ -1065,7 +1261,7 @@ export default function Home() {
 
   return (
     <Page back={false}>
-      <MainHome profile={profile} />
+      {profile ? <ProfileScreen profile={profile} onProfileChange={setProfile} /> : <MainHome profile={profile} />}
     </Page>
   );
 }
