@@ -11,8 +11,20 @@ export interface CityGeo {
   id: string;
   name: string;
   country_code: string;
+  admin1_name: string | null;
   latitude: number | null;
   longitude: number | null;
+}
+
+const DEFAULT_CITY_LIMIT = 500;
+const MAX_CITY_LIMIT = 1_000;
+
+function cleanSearchQuery(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.replace(/[%_]/g, '\\$&');
 }
 
 /**
@@ -20,14 +32,15 @@ export interface CityGeo {
  */
 export async function getActiveCountries(searchQuery?: string): Promise<CountryGeo[]> {
   const admin = getSupabaseAdmin();
+  const cleanQuery = cleanSearchQuery(searchQuery);
   let query = admin.from('countries')
     .select('code, name, emoji_flag')
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true });
 
-  if (searchQuery && searchQuery.trim().length > 0) {
-    query = query.or(`name.ilike.%${searchQuery.trim()}%,code.ilike.%${searchQuery.trim()}%`);
+  if (cleanQuery) {
+    query = query.or(`name.ilike.%${cleanQuery}%,code.ilike.%${cleanQuery}%`);
   }
 
   const { data, error } = await query;
@@ -46,17 +59,24 @@ export async function getActiveCountries(searchQuery?: string): Promise<CountryG
 /**
  * Fetches cities belonging to a country.
  */
-export async function getCitiesOfCountry(countryCode: string, searchQuery?: string): Promise<CityGeo[]> {
+export async function getCitiesOfCountry(
+  countryCode: string,
+  searchQuery?: string,
+  options?: { limit?: number; offset?: number },
+): Promise<CityGeo[]> {
   const admin = getSupabaseAdmin();
+  const cleanQuery = cleanSearchQuery(searchQuery);
+  const limit = Math.min(Math.max(options?.limit ?? DEFAULT_CITY_LIMIT, 1), MAX_CITY_LIMIT);
+  const offset = Math.max(options?.offset ?? 0, 0);
   let query = admin.from('cities')
-    .select('id, name, country_code, latitude, longitude')
+    .select('id, name, country_code, admin1_name, latitude, longitude')
     .eq('country_code', countryCode.toUpperCase())
     .eq('is_active', true)
     .order('name', { ascending: true })
-    .limit(200);
+    .range(offset, offset + limit - 1);
 
-  if (searchQuery && searchQuery.trim().length > 0) {
-    query = query.ilike('name', `%${searchQuery.trim()}%`);
+  if (cleanQuery) {
+    query = query.or(`name.ilike.%${cleanQuery}%,ascii_name.ilike.%${cleanQuery}%,admin1_name.ilike.%${cleanQuery}%`);
   }
 
   const { data, error } = await query;
@@ -69,6 +89,7 @@ export async function getCitiesOfCountry(countryCode: string, searchQuery?: stri
     id: row.id,
     name: row.name,
     country_code: row.country_code,
+    admin1_name: row.admin1_name,
     latitude: row.latitude,
     longitude: row.longitude
   }));
@@ -81,17 +102,18 @@ export async function getClosestCity(lat: number, lng: number): Promise<{ city: 
   const admin = getSupabaseAdmin();
   
   // Try bounding boxes of increasing sizes to find the closest city
-  const boxSizes = [0.5, 1.5, 5.0, 15.0];
-  let cities: any[] = [];
+  const boxSizes = [0.5, 1.5, 5.0, 15.0, 45.0, 90.0, 180.0];
+  let cities: CityGeo[] = [];
   
   for (const boxSize of boxSizes) {
     const { data, error } = await admin.from('cities')
-      .select('id, name, country_code, latitude, longitude')
+      .select('id, name, country_code, admin1_name, latitude, longitude')
       .eq('is_active', true)
       .gte('latitude', lat - boxSize)
       .lte('latitude', lat + boxSize)
       .gte('longitude', lng - boxSize)
-      .lte('longitude', lng + boxSize);
+      .lte('longitude', lng + boxSize)
+      .limit(5_000);
 
     if (error) {
       console.error('Failed to query cities inside bounding box:', error);
@@ -104,11 +126,13 @@ export async function getClosestCity(lat: number, lng: number): Promise<{ city: 
     }
   }
 
-  // If still no cities found, query top 100 closest globally
+  // If still no cities found, sample active cities with coordinates as a last resort.
   if (cities.length === 0) {
     const { data, error } = await admin.from('cities')
-      .select('id, name, country_code, latitude, longitude')
+      .select('id, name, country_code, admin1_name, latitude, longitude')
       .eq('is_active', true)
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
       .limit(200);
       
     if (error || !data) {
@@ -118,7 +142,7 @@ export async function getClosestCity(lat: number, lng: number): Promise<{ city: 
   }
 
   // Calculate exact distances using Haversine approximation
-  let closestCity: any = null;
+  let closestCity: CityGeo | null = null;
   let minDistance = Infinity;
 
   for (const city of cities) {
@@ -148,6 +172,7 @@ export async function getClosestCity(lat: number, lng: number): Promise<{ city: 
       id: closestCity.id,
       name: closestCity.name,
       country_code: closestCity.country_code,
+      admin1_name: closestCity.admin1_name,
       latitude: closestCity.latitude,
       longitude: closestCity.longitude
     },

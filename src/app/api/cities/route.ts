@@ -14,12 +14,23 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const countryCode = searchParams.get('countryCode');
     const query = searchParams.get('q') || undefined;
+    const limitParam = Number(searchParams.get('limit') ?? '500');
+    const offsetParam = Number(searchParams.get('offset') ?? '0');
+    const limit = Number.isFinite(limitParam) ? Math.min(Math.max(Math.floor(limitParam), 1), 1_000) : 500;
+    const offset = Number.isFinite(offsetParam) ? Math.max(Math.floor(offsetParam), 0) : 0;
     
     if (!countryCode) {
       throw new ApiError(400, 'INVALID_REQUEST', 'Missing countryCode parameter');
     }
     
-    const cities = await getCitiesOfCountry(countryCode, query);
-    return jsonData({ cities });
+    const cities = await getCitiesOfCountry(countryCode, query, { limit, offset });
+    return jsonData({
+      cities,
+      pagination: {
+        limit,
+        offset,
+        nextOffset: cities.length === limit ? offset + limit : null,
+      },
+    });
   });
 }

@@ -1,98 +1,66 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Wheel from './Wheel';
 
 interface DatePickerProps {
+  initialAge?: number;
   initialDate?: Date;
+  label?: string;
+  maxAge?: number;
+  minAge?: number;
   onChange: (date: Date, age: number) => void;
 }
 
-export default function DatePicker({ initialDate, onChange }: DatePickerProps) {
+function ageFromDate(date: Date) {
   const today = new Date();
-  const currentYear = today.getFullYear();
-  const minYear = currentYear - 99; // 1927 for 2026
-  const maxYear = currentYear - 18; // 2008 for 2026
-  const yearLength = maxYear - minYear + 1;
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
 
-  // Set default initial date to 2000-01-01 (approx 26 years old)
-  const defaultDate = React.useMemo(() => {
-    if (initialDate) {
-      // Validate that initialDate is within bounds
-      const y = initialDate.getFullYear();
-      if (y >= minYear && y <= maxYear) return initialDate;
-    }
-    return new Date(2000, 0, 1);
-  }, [initialDate, minYear, maxYear]);
+function birthDateForAge(age: number) {
+  const today = new Date();
+  return new Date(today.getFullYear() - age, today.getMonth(), today.getDate());
+}
 
-  const [yearIdx, setYearIdx] = useState(() => {
-    return defaultDate.getFullYear() - minYear;
-  });
-  const [monthIdx, setMonthIdx] = useState(() => {
-    return defaultDate.getMonth();
-  });
-  const [dayIdx, setDayIdx] = useState(() => {
-    return defaultDate.getDate() - 1;
-  });
+export default function DatePicker({
+  initialAge,
+  initialDate,
+  label = 'Age',
+  maxAge = 99,
+  minAge = 18,
+  onChange,
+}: DatePickerProps) {
+  const initialValue = React.useMemo(() => {
+    const dateAge = initialDate ? ageFromDate(initialDate) : undefined;
+    const age = initialAge ?? dateAge ?? 25;
+    return Math.min(Math.max(age, minAge), maxAge);
+  }, [initialAge, initialDate, maxAge, minAge]);
+  const [ageIndex, setAgeIndex] = React.useState(initialValue - minAge);
+  const age = minAge + ageIndex;
 
-  const selectedYear = minYear + yearIdx;
-  const selectedMonth = monthIdx + 1;
-  const selectedDay = dayIdx + 1;
-
-  // Dynamically calculate days in the selected month/year
-  const daysInMonth = React.useMemo(() => {
-    return new Date(selectedYear, selectedMonth, 0).getDate();
-  }, [selectedYear, selectedMonth]);
-
-  // Adjust day index if it exceeds the max days in the newly selected month
-  useEffect(() => {
-    if (dayIdx >= daysInMonth) {
-      setDayIdx(daysInMonth - 1);
-    }
-  }, [daysInMonth, dayIdx]);
-
-  useEffect(() => {
-    // Clamp the selected day to valid range
-    const validDay = Math.min(selectedDay, daysInMonth);
-    const date = new Date(selectedYear, selectedMonth - 1, validDay);
-    
-    // Dynamic Age Calculation
-    let age = today.getFullYear() - date.getFullYear();
-    const monthDiff = today.getMonth() - date.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
-      age--;
-    }
-    
-    onChange(date, age);
-  }, [yearIdx, monthIdx, dayIdx, daysInMonth]);
+  React.useEffect(() => {
+    onChange(birthDateForAge(age), age);
+  }, [age, onChange]);
 
   return (
-    <div className="datepicker-container">
-      <div className="datepicker-wheels">
-        <Wheel
-          length={daysInMonth}
-          initIdx={Math.min(dayIdx, daysInMonth - 1)}
-          setValue={(i) => String(i + 1).padStart(2, '0')}
-          width={70}
-          onChange={setDayIdx}
-          label="Day"
-        />
-        <Wheel
-          length={12}
-          initIdx={monthIdx}
-          setValue={(i) => String(i + 1).padStart(2, '0')}
-          width={70}
-          onChange={setMonthIdx}
-          label="Month"
-        />
-        <Wheel
-          length={yearLength}
-          initIdx={yearIdx}
-          setValue={(i) => String(minYear + i)}
-          width={90}
-          onChange={setYearIdx}
-          label="Year"
-        />
+    <div className="age-picker" aria-label={label}>
+      <div className="age-picker__value">{age}</div>
+      <div className="datepicker-container age-picker__wheel">
+        <div className="datepicker-wheels">
+          <Wheel
+            length={maxAge - minAge + 1}
+            initIdx={ageIndex}
+            label={label}
+            onChange={setAgeIndex}
+            setValue={(index) => String(minAge + index)}
+            width={112}
+          />
+        </div>
       </div>
     </div>
   );

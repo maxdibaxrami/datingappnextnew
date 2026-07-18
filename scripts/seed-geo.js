@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
-const { Country, City } = require('country-state-city');
+const { Country, City, State } = require('country-state-city');
 
 // Load environment variables manually
 function loadEnv() {
@@ -81,15 +82,25 @@ async function seed() {
     const id = getDeterministicUUID(uniqueString);
     const lat = parseFloat(city.latitude);
     const lng = parseFloat(city.longitude);
+    const state = city.stateCode
+      ? State.getStateByCodeAndCountry(city.stateCode, city.countryCode)
+      : null;
 
     return {
       id,
       name: city.name,
+      ascii_name: city.name.normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
       country_code: city.countryCode.toUpperCase(),
+      admin1_code: city.stateCode || null,
+      admin1_name: state?.name || null,
       is_active: true,
       latitude: isNaN(lat) ? null : lat,
       longitude: isNaN(lng) ? null : lng,
-      search_keywords: [city.name.toLowerCase()],
+      search_keywords: [
+        city.name.toLowerCase(),
+        state?.name?.toLowerCase(),
+        city.stateCode?.toLowerCase(),
+      ].filter(Boolean),
       timezone: null,
       population: null
     };
