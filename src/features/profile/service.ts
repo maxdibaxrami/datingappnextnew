@@ -9,57 +9,23 @@ import { type UpdateProfileInput } from './schemas';
 
 const PROFILE_COLUMNS = 'user_id,display_name,age_years,gender,pronouns,headline,bio,about_me,looking_for_text,personality_summary,fun_fact,first_date_idea,country_code,city_name,city_id,public_geohash_prefix,mood,intents,languages,relationship_goals,interests,visibility,discoverable,follow_approval_required,profile_completed_at,created_at,updated_at' as const;
 
-const PHOTO_COLUMNS = 'id,public_url,blur_hash,width,height,sort_order,is_primary,is_private,face_check_status,moderation_status,upload_status,confirmed_at,created_at' as const;
-
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type PhotoRow = Database['public']['Tables']['profile_photos']['Row'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 type OwnProfileRow = Pick<
   ProfileRow,
-  | 'user_id'
-  | 'display_name'
-  | 'age_years'
-  | 'gender'
-  | 'pronouns'
-  | 'headline'
-  | 'bio'
-  | 'about_me'
-  | 'looking_for_text'
-  | 'personality_summary'
-  | 'fun_fact'
-  | 'first_date_idea'
-  | 'country_code'
-  | 'city_name'
-  | 'city_id'
-  | 'public_geohash_prefix'
-  | 'mood'
-  | 'intents'
-  | 'languages'
-  | 'relationship_goals'
-  | 'interests'
-  | 'visibility'
-  | 'discoverable'
-  | 'follow_approval_required'
-  | 'profile_completed_at'
-  | 'created_at'
-  | 'updated_at'
+  | 'user_id' | 'display_name' | 'age_years' | 'gender' | 'pronouns' | 'headline' | 'bio'
+  | 'about_me' | 'looking_for_text' | 'personality_summary' | 'fun_fact' | 'first_date_idea'
+  | 'country_code' | 'city_name' | 'city_id' | 'public_geohash_prefix' | 'mood' | 'intents'
+  | 'languages' | 'relationship_goals' | 'interests' | 'visibility' | 'discoverable'
+  | 'follow_approval_required' | 'profile_completed_at' | 'created_at' | 'updated_at'
 >;
 type OwnPhotoRow = Pick<
   PhotoRow,
-  | 'id'
-  | 'public_url'
-  | 'blur_hash'
-  | 'width'
-  | 'height'
-  | 'sort_order'
-  | 'is_primary'
-  | 'is_private'
-  | 'face_check_status'
-  | 'moderation_status'
-  | 'upload_status'
-  | 'confirmed_at'
-  | 'created_at'
->;
+  | 'id' | 'public_url' | 'blur_hash' | 'width' | 'height' | 'sort_order' | 'is_primary'
+  | 'is_private' | 'face_check_status' | 'moderation_status' | 'upload_status'
+  | 'confirmed_at' | 'created_at'
+> & { thumbnail_url?: string | null };
 
 function mapProfile(profile: OwnProfileRow) {
   return {
@@ -96,7 +62,8 @@ function mapProfile(profile: OwnProfileRow) {
 function mapPhoto(photo: OwnPhotoRow) {
   return {
     id: photo.id,
-    publicUrl: photo.public_url,
+    publicUrl: photo.thumbnail_url ?? photo.public_url,
+    largeUrl: photo.public_url,
     blurHash: photo.blur_hash,
     width: photo.width,
     height: photo.height,
@@ -116,7 +83,7 @@ export async function getOwnProfile(userId: string) {
   const [profileResult, photosResult] = await Promise.all([
     admin.from('profiles').select(PROFILE_COLUMNS).eq('user_id', userId).maybeSingle(),
     admin.from('profile_photos')
-      .select(PHOTO_COLUMNS)
+      .select('*')
       .eq('user_id', userId)
       .is('deleted_at', null)
       .order('sort_order', { ascending: true })
@@ -126,13 +93,11 @@ export async function getOwnProfile(userId: string) {
   if (profileResult.error || photosResult.error) {
     throw new ApiError(500, 'INTERNAL_ERROR', 'The profile could not be loaded');
   }
-  if (!profileResult.data) {
-    throw new NotFoundError('The profile does not exist');
-  }
+  if (!profileResult.data) throw new NotFoundError('The profile does not exist');
 
   return {
     profile: mapProfile(profileResult.data),
-    photos: photosResult.data.map(mapPhoto),
+    photos: (photosResult.data as OwnPhotoRow[]).map(mapPhoto),
   };
 }
 
@@ -173,17 +138,11 @@ export async function updateOwnProfile(userId: string, input: UpdateProfileInput
     .eq('user_id', userId)
     .select('user_id')
     .maybeSingle();
-  if (updated.error) {
-    throw new ApiError(500, 'INTERNAL_ERROR', 'The profile could not be updated');
-  }
-  if (!updated.data) {
-    throw new NotFoundError('The profile does not exist');
-  }
+  if (updated.error) throw new ApiError(500, 'INTERNAL_ERROR', 'The profile could not be updated');
+  if (!updated.data) throw new NotFoundError('The profile does not exist');
 
   const completion = await admin.rpc('refresh_profile_completion', { p_user_id: userId });
-  if (completion.error) {
-    throw new ApiError(500, 'INTERNAL_ERROR', 'Profile completion could not be refreshed');
-  }
+  if (completion.error) throw new ApiError(500, 'INTERNAL_ERROR', 'Profile completion could not be refreshed');
   return getOwnProfile(userId);
 }
 
@@ -195,20 +154,14 @@ function findMissingFields(profileData: Awaited<ReturnType<typeof getOwnProfile>
   if (!profile.gender) missing.push('gender');
   if (!profile.countryCode) missing.push('countryCode');
   if (!profile.cityName) missing.push('cityName');
-  if (!photos.some((photo) => photo.isPrimary && photo.uploadStatus === 'confirmed')) {
-    missing.push('primaryPhoto');
-  }
+  if (!photos.some((photo) => photo.isPrimary && photo.uploadStatus === 'confirmed')) missing.push('primaryPhoto');
   return missing;
 }
 
 export async function completeOwnProfile(userId: string) {
   await requireProfileEditor(userId);
-  const result = await getSupabaseAdmin().rpc('refresh_profile_completion', {
-    p_user_id: userId,
-  });
-  if (result.error) {
-    throw new ApiError(500, 'INTERNAL_ERROR', 'Profile completion could not be checked');
-  }
+  const result = await getSupabaseAdmin().rpc('refresh_profile_completion', { p_user_id: userId });
+  if (result.error) throw new ApiError(500, 'INTERNAL_ERROR', 'Profile completion could not be checked');
   if (!result.data) {
     const profileData = await getOwnProfile(userId);
     throw new ProfileIncompleteError(findMissingFields(profileData));
